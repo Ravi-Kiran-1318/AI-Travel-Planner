@@ -23,7 +23,7 @@ export default function CreateTripForm({ onSubmit, isLoading }: CreateTripFormPr
   const [destination, setDestination] = useState('');
   const [source, setSource] = useState('');
   const [transportMode, setTransportMode] = useState('Flight');
-  const [durationDays, setDurationDays] = useState(3);
+  const [durationDays, setDurationDays] = useState<number | ''>(3);
   const [budgetTier, setBudgetTier] = useState('Medium');
   const [interests, setInterests] = useState<string[]>([]);
 
@@ -37,10 +37,11 @@ export default function CreateTripForm({ onSubmit, isLoading }: CreateTripFormPr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!destination.trim() || durationDays <= 0) return;
+    if (!destination.trim()) return;
+    const finalDays = typeof durationDays === 'number' ? Math.max(1, durationDays) : 3;
     onSubmit({
       destination,
-      durationDays,
+      durationDays: finalDays,
       budgetTier,
       interests,
       source,
@@ -123,7 +124,22 @@ export default function CreateTripForm({ onSubmit, isLoading }: CreateTripFormPr
             max={30}
             required
             value={durationDays}
-            onChange={(e) => setDurationDays(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '') {
+                setDurationDays('');
+              } else {
+                const num = parseInt(val, 10);
+                if (!isNaN(num)) {
+                  setDurationDays(num);
+                }
+              }
+            }}
+            onBlur={() => {
+              if (durationDays === '' || durationDays < 1) {
+                setDurationDays(3);
+              }
+            }}
             className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-300 text-sm"
           />
         </div>

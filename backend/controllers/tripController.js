@@ -100,6 +100,31 @@ function generateMockTrip(destination, durationDays, budgetTier, interests) {
     { title: 'Local Park & Botanical Gardens', description: 'Relaxing stroll through popular gardens and central squares.', cost: { Low: 0, Medium: 0, High: 0 } }
   ];
 
+  const destLower = destination.toLowerCase();
+  const isLowCostRegion = 
+    destLower.includes('india') || 
+    destLower.includes('bangalore') || 
+    destLower.includes('banglore') || 
+    destLower.includes('hyderabad') || 
+    destLower.includes('tirupati') || 
+    destLower.includes('srikakulam') || 
+    destLower.includes('ooty') || 
+    destLower.includes('vizag') || 
+    destLower.includes('visakhapatnam') || 
+    destLower.includes('delhi') || 
+    destLower.includes('mumbai') || 
+    destLower.includes('chennai') || 
+    destLower.includes('kolkata') || 
+    destLower.includes('goa') || 
+    destLower.includes('kerala') || 
+    destLower.includes('thailand') || 
+    destLower.includes('bali') || 
+    destLower.includes('vietnam') || 
+    destLower.includes('indonesia') || 
+    destLower.includes('nepal');
+
+  const costMultiplier = isLowCostRegion ? (budgetTier === 'High' ? 0.5 : 0.35) : 1.0;
+
   const selectedCategories = interests.map(i => i.toLowerCase()).filter(cat => activityMap[cat]);
   if (selectedCategories.length === 0) {
     selectedCategories.push('culture');
@@ -122,7 +147,7 @@ function generateMockTrip(destination, durationDays, budgetTier, interests) {
         actTemplate = generalActivities[Math.floor(Math.random() * generalActivities.length)];
       }
 
-      const cost = actTemplate.cost[budgetTier] || 10;
+      const cost = Math.round((actTemplate.cost[budgetTier] || 10) * costMultiplier);
       activityCostSum += cost;
 
       dayActivities.push({
@@ -154,13 +179,16 @@ function generateMockTrip(destination, durationDays, budgetTier, interests) {
     ]
   };
 
-  const selectedHotels = hotelTiers[budgetTier] || hotelTiers.Medium;
+  const selectedHotels = (hotelTiers[budgetTier] || hotelTiers.Medium).map(hotel => ({
+    ...hotel,
+    estimatedCostNightUSD: Math.round(hotel.estimatedCostNightUSD * costMultiplier)
+  }));
 
   const nightCost = selectedHotels[0].estimatedCostNightUSD;
   const accommodation = nightCost * (durationDays - 1 || 1);
-  const foodCostPerDay = { Low: 25, Medium: 55, High: 160 }[budgetTier];
+  const foodCostPerDay = Math.round({ Low: 25, Medium: 55, High: 160 }[budgetTier] * costMultiplier);
   const food = foodCostPerDay * durationDays;
-  const transportCost = { Low: 40, Medium: 110, High: 300 }[budgetTier];
+  const transportCost = Math.round({ Low: 40, Medium: 110, High: 300 }[budgetTier] * costMultiplier);
   
   const estimatedBudget = {
     transport: transportCost,
@@ -370,27 +398,27 @@ exports.generateNewTrip = async (req, res) => {
     Budget tier preference: "${budgetTier}".
     Traveler interests: ${selectedInterests.join(', ') || 'General Sightseeing'}.
 
-    You must output ONLY a valid JSON object conforming exactly to this structure:
+    You must output ONLY a valid JSON object conforming exactly to this structure (note: values here are illustrative placeholders. You must replace them with realistic calculations for the destination and budget tier):
     {
       "itinerary": [
         {
           "dayNumber": 1,
           "activities": [
-            { "title": "Activity name", "description": "Brief description outlining locations", "estimatedCostUSD": 20, "timeOfDay": "Morning" },
-            { "title": "Next Activity", "description": "Details", "estimatedCostUSD": 30, "timeOfDay": "Afternoon" },
-            { "title": "Evening Spot", "description": "Details", "estimatedCostUSD": 45, "timeOfDay": "Evening" }
+            { "title": "Activity name", "description": "Brief description outlining locations", "estimatedCostUSD": 10, "timeOfDay": "Morning" },
+            { "title": "Next Activity", "description": "Details", "estimatedCostUSD": 15, "timeOfDay": "Afternoon" },
+            { "title": "Evening Spot", "description": "Details", "estimatedCostUSD": 20, "timeOfDay": "Evening" }
           ]
         }
       ],
       "hotels": [
-        { "name": "Recommended Hotel Name", "tier": "Budget Friendly or Mid Range or Luxury matching budgetTier", "estimatedCostNightUSD": 90, "rating": "4.5/5" }
+        { "name": "Recommended Hotel Name", "tier": "Budget Friendly or Mid Range or Luxury matching budgetTier", "estimatedCostNightUSD": 45, "rating": "4.5/5" }
       ],
       "estimatedBudget": {
-        "transport": 120,
-        "accommodation": 350,
-        "food": 160,
-        "activities": 110,
-        "total": 740
+        "transport": 50,
+        "accommodation": 150,
+        "food": 80,
+        "activities": 65,
+        "total": 345
       },
       "packingList": [
         { "item": "Passport", "category": "Documents", "isPacked": false },
@@ -403,14 +431,28 @@ exports.generateNewTrip = async (req, res) => {
       }
     }
 
-    Notes:
-    1. For budgetTier "Low", select budget accommodations, affordable local food tours, and free/cheap attractions.
-    2. For budgetTier "Medium", select comfortable mid-range hotels, local tours, and balanced meals.
-    3. For budgetTier "High", suggest premium luxury hotels, fine dining, private tours, and exclusive activities.
-    4. Provide exactly ${duration} days in the itinerary.
-    5. Write 2-3 activities per day. Set realistic estimatedCostUSD estimates for activities.
-    6. Estimate the total budget components accurately based on typical travel expenses.
-    7. Generate a weather-aware packing list based on destination climate at this current time of year and activities. Categorize items into "Documents", "Clothing", "Gear", "Other".
+    Important Budget & Cost Guidelines:
+    - Crucial: Scale all costs realistically to the destination's actual local economy (purchasing power parity). For example, a trip in India, Thailand, Bali, or other lower-cost regions must have significantly lower costs compared to Western Europe or the USA.
+    - Keep budgets realistic for the tier selected ("${budgetTier}"):
+      * If budgetTier is "Low", optimize for a frugal backpacker/budget traveler:
+        - Accommodations: Hostels, homestays, or cheap guesthouses. Target: $10 - $45 per night depending on location.
+        - Food: Street food, local casual diners. Target: $5 - $25 per day depending on location.
+        - Activities: Free attractions, walking tours, public parks, cheap museum entries. Target: $0 - $15 per activity.
+        - Transport: Public transit, walking, or shared rides. Target: $5 - $20 total.
+      * If budgetTier is "Medium", optimize for a comfortable mid-range traveler:
+        - Accommodations: 3-star hotels, private rooms. Target: $30 - $120 per night depending on location.
+        - Food: Mid-range casual restaurants, local cafes. Target: $15 - $50 per day depending on location.
+        - Activities: Regular entry tickets, group tours, popular sights. Target: $10 - $40 per activity.
+        - Transport: Taxis, metro, or car rentals. Target: $20 - $80 total.
+      * If budgetTier is "High", optimize for luxury or premium travel:
+        - Accommodations: 4/5-star hotels, luxury resorts. Target: $150 - $500+ per night.
+        - Food: Fine dining, high-end restaurants. Target: $60 - $200+ per day.
+        - Activities: Private tours, exclusive experiences, premium entry tickets. Target: $40 - $150+ per activity.
+        - Transport: Private transfers, flights, or premium car rentals.
+    - Provide exactly ${duration} days in the itinerary.
+    - Write 2-3 activities per day. Set realistic estimatedCostUSD estimates for activities.
+    - Estimate the total budget components accurately based on typical travel expenses.
+    - Generate a weather-aware packing list based on destination climate at this current time of year and activities. Categorize items into "Documents", "Clothing", "Gear", "Other".
   `;
 
   try {

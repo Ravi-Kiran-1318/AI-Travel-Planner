@@ -609,7 +609,7 @@ export default function DashboardPage() {
 
                       <div>
                         <label htmlFor="editTransport" className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                          Transit Mode
+                          Transport Mode
                         </label>
                         <select
                           id="editTransport"
