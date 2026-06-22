@@ -26,3 +26,72 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
+@media print {
+  body, html {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+  
+  /* Hide non-print components */
+  .no-print,
+  header,
+  footer,
+  aside,
+  button,
+  form,
+  select,
+  input {
+    display: none !important;
+  }
+
+  /* Force light backgrounds & dark borders/text for card sections */
+  .bg-slate-900\/60,
+  .bg-slate-900\/80,
+  .bg-slate-950\/40,
+  .bg-slate-950\/20,
+  .bg-slate-900,
+  .bg-slate-950 {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+  
+  .text-white,
+  .text-slate-100,
+  .text-slate-200,
+  .text-slate-300,
+  .text-slate-400 {
+    color: #334155 !important;
+  }
+
+  .text-indigo-400,
+  .text-blue-400,
+  .text-emerald-400,
+  .bg-gradient-to-r {
+    color: #2563eb !important;
+    background-image: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: unset !important;
+  }
+
+  /* Layout configuration for print pages */
+  main {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Prevent page breaks in middle of elements */
+  .bg-slate-900\/60,
+  .rounded-3xl,
+  .relative {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}

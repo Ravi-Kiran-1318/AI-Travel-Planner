@@ -3,14 +3,17 @@ import { Trip, PackingItem } from '../types';
 
 interface PackingListProps {
   trip: Trip;
-  onUpdateTrip: (updatedTrip: Trip) => void;
+  onUpdateTrip?: (updatedTrip: Trip) => void;
+  isReadOnly?: boolean;
 }
 
 const CATEGORIES = ['Documents', 'Clothing', 'Gear', 'Other'];
 
-export default function PackingList({ trip, onUpdateTrip }: PackingListProps) {
+export default function PackingList({ trip, onUpdateTrip, isReadOnly = false }: PackingListProps) {
   
   const handleToggleItem = async (itemId: string) => {
+    if (isReadOnly || !onUpdateTrip) return;
+    
     const updatedPackingList = trip.packingList.map((item) => {
       if (item._id === itemId) {
         return {
@@ -77,11 +80,14 @@ export default function PackingList({ trip, onUpdateTrip }: PackingListProps) {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {categoryItems.map((item) => (
-                  <button
+                  <div
                     key={item._id}
-                    type="button"
-                    onClick={() => handleToggleItem(item._id!)}
-                    className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition duration-300 w-full hover:bg-slate-800/40 select-none ${
+                    onClick={() => !isReadOnly && handleToggleItem(item._id!)}
+                    className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition duration-300 w-full ${
+                      !isReadOnly
+                        ? 'hover:bg-slate-800/40 cursor-pointer select-none'
+                        : 'select-none'
+                    } ${
                       item.isPacked
                         ? 'bg-slate-950/20 border-slate-900 text-slate-500'
                         : 'bg-slate-950/40 border-slate-800 text-slate-200'
@@ -110,7 +116,7 @@ export default function PackingList({ trip, onUpdateTrip }: PackingListProps) {
                     <span className={`ml-auto text-[10px] px-2 py-0.5 border rounded-full font-mono font-medium ${getCategoryColor(category)}`}>
                       {category}
                     </span>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>

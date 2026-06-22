@@ -3,11 +3,12 @@ import { Trip, Activity, ItineraryDay } from '../types';
 
 interface ItineraryCardProps {
   trip: Trip;
-  onUpdateTrip: (updatedTrip: Trip) => void;
-  onRegenerateDay: (dayNumber: number, instructions: string) => Promise<void>;
+  onUpdateTrip?: (updatedTrip: Trip) => void;
+  onRegenerateDay?: (dayNumber: number, instructions: string) => Promise<void>;
+  isReadOnly?: boolean;
 }
 
-export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay }: ItineraryCardProps) {
+export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isReadOnly = false }: ItineraryCardProps) {
   // Activity Inline Form state
   const [newActivityTitle, setNewActivityTitle] = useState('');
   const [newActivityDesc, setNewActivityDesc] = useState('');
@@ -254,26 +255,28 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay }: I
                 <span>Day {day.dayNumber}</span>
               </h3>
               
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setActiveAddDay(activeAddDay === day.dayNumber ? null : day.dayNumber);
-                    setActiveRegenDay(null);
-                  }}
-                  className="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 text-slate-200 transition duration-200 flex items-center gap-1"
-                >
-                  <span>➕ Add Activity</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveRegenDay(activeRegenDay === day.dayNumber ? null : day.dayNumber);
-                    setActiveAddDay(null);
-                  }}
-                  className="bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-900/50 transition duration-200 flex items-center gap-1"
-                >
-                  <span>✨ AI Modify</span>
-                </button>
-              </div>
+              {!isReadOnly && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setActiveAddDay(activeAddDay === day.dayNumber ? null : day.dayNumber);
+                      setActiveRegenDay(null);
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 text-slate-200 transition duration-200 flex items-center gap-1"
+                  >
+                    <span>➕ Add Activity</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveRegenDay(activeRegenDay === day.dayNumber ? null : day.dayNumber);
+                      setActiveAddDay(null);
+                    }}
+                    className="bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-900/50 transition duration-200 flex items-center gap-1"
+                  >
+                    <span>✨ AI Modify</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Regeneration Pane */}
@@ -469,26 +472,28 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay }: I
                         )}
                       </div>
 
-                      <div className="flex gap-1.5 shrink-0 self-center no-print">
-                        <button
-                          onClick={() => handleStartEdit(day.dayNumber, index, act)}
-                          className="text-slate-500 hover:text-indigo-400 p-2 rounded-xl hover:bg-indigo-500/10 transition-colors duration-250"
-                          title="Edit activity"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleRemoveActivity(day.dayNumber, index)}
-                          className="text-slate-500 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-colors duration-250"
-                          title="Remove activity"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex gap-1.5 shrink-0 self-center no-print">
+                          <button
+                            onClick={() => handleStartEdit(day.dayNumber, index, act)}
+                            className="text-slate-500 hover:text-indigo-400 p-2 rounded-xl hover:bg-indigo-500/10 transition-colors duration-250"
+                            title="Edit activity"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleRemoveActivity(day.dayNumber, index)}
+                            className="text-slate-500 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-colors duration-250"
+                            title="Remove activity"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
