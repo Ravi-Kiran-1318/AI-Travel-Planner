@@ -51,6 +51,11 @@ export const api = {
         method: 'GET',
       }),
       
+    getPublic: (id: string) => 
+      request<any>(`/api/trips/public/${id}`, {
+        method: 'GET',
+      }),
+      
     create: (tripData: { destination: string; durationDays: number; budgetTier: string; interests: string[] }) => 
       request<any>('/api/trips', {
         method: 'POST',

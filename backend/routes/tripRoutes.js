@@ -3,6 +3,9 @@ const router = express.Router();
 const tripController = require('../controllers/tripController');
 const auth = require('../middleware/auth');
 
+// Public share endpoint - no auth required
+router.get('/public/:id', tripController.getPublicTrip);
+
 // Apply auth middleware to all routes in this router
 router.use(auth);
 

@@ -44,6 +44,12 @@ export interface Trip {
   hotels: Hotel[];
   estimatedBudget: EstimatedBudget;
   packingList: PackingItem[];
+  isPublic?: boolean;
+  climate?: {
+    temperatureRange: string;
+    rainfall: string;
+    weatherSummary: string;
+  };
   createdAt?: string;
   updatedAt?: string;
 }

@@ -38,7 +38,13 @@ const TripSchema = new mongoose.Schema({
     item: { type: String, required: true },
     category: { type: String, enum: ['Documents', 'Clothing', 'Gear', 'Other'], default: 'Other' },
     isPacked: { type: Boolean, default: false }
-  }]
+  }],
+  isPublic: { type: Boolean, default: false },
+  climate: {
+    temperatureRange: { type: String, default: '' },
+    rainfall: { type: String, default: '' },
+    weatherSummary: { type: String, default: '' }
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Trip', TripSchema);

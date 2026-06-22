@@ -17,6 +17,44 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
+  // Sharing & Currency Conversion states
+  const [currency, setCurrency] = useState<'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY'>('USD');
+  const [copied, setCopied] = useState(false);
+
+  const CURRENCIES = {
+    USD: { symbol: '$', rate: 1.0 },
+    EUR: { symbol: '€', rate: 0.92 },
+    GBP: { symbol: '£', rate: 0.79 },
+    INR: { symbol: '₹', rate: 83.5 },
+    JPY: { symbol: '¥', rate: 158.0 },
+  };
+
+  const formatAmount = (usdValue: number) => {
+    const { symbol, rate } = CURRENCIES[currency];
+    return `${symbol}${(usdValue * rate).toFixed(0)}`;
+  };
+
+  const shareUrl = selectedTrip
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/share/${selectedTrip._id}`
+    : '';
+
+  const handleToggleShare = async (newValue: boolean) => {
+    if (!selectedTrip) return;
+    try {
+      const updated = await api.trips.update(selectedTrip._id, { isPublic: newValue });
+      handleUpdateTripState(updated);
+    } catch (err: any) {
+      console.error('Failed to toggle share state:', err);
+      alert(err.message || 'Failed to update share settings.');
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   // Authenticate user & load trips
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -25,6 +63,7 @@ export default function DashboardPage() {
       return;
     }
     loadTrips();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const loadTrips = async () => {
@@ -206,39 +245,115 @@ export default function DashboardPage() {
             {/* Financial cost ledger */}
             {selectedTrip && !showCreateForm && (
               <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                <h3 className="text-lg font-bold text-white">Financial Cost Ledger</h3>
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-lg font-bold text-white">Financial Cost Ledger</h3>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as any)}
+                    className="bg-slate-950 border border-slate-800 text-slate-300 rounded-lg text-xs py-1.5 px-2 outline-none focus:border-indigo-500 font-medium"
+                  >
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="INR">INR (₹)</option>
+                    <option value="JPY">JPY (¥)</option>
+                  </select>
+                </div>
                 <div className="space-y-3.5">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Transport & Transit:</span>
                     <span className="font-mono font-semibold text-slate-200">
-                      ${selectedTrip.estimatedBudget?.transport || 0}
+                      {formatAmount(selectedTrip.estimatedBudget?.transport || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Lodging & Hotels:</span>
                     <span className="font-mono font-semibold text-slate-200">
-                      ${selectedTrip.estimatedBudget?.accommodation || 0}
+                      {formatAmount(selectedTrip.estimatedBudget?.accommodation || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Culinary & Food:</span>
                     <span className="font-mono font-semibold text-slate-200">
-                      ${selectedTrip.estimatedBudget?.food || 0}
+                      {formatAmount(selectedTrip.estimatedBudget?.food || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Activities Booking:</span>
                     <span className="font-mono font-semibold text-slate-200">
-                      ${selectedTrip.estimatedBudget?.activities || 0}
+                      {formatAmount(selectedTrip.estimatedBudget?.activities || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-slate-800 pt-4 text-white font-bold">
                     <span className="text-indigo-400">Grand Estimated Total:</span>
                     <span className="font-mono text-indigo-400 text-lg">
-                      ${selectedTrip.estimatedBudget?.total || 0}
+                      {formatAmount(selectedTrip.estimatedBudget?.total || 0)}
                     </span>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Share settings */}
+            {selectedTrip && !showCreateForm && (
+              <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                <h3 className="text-lg font-bold text-white">Share Itinerary</h3>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Enable Public Share Link</span>
+                  <button
+                    onClick={() => handleToggleShare(!selectedTrip.isPublic)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      selectedTrip.isPublic ? 'bg-indigo-600' : 'bg-slate-800'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        selectedTrip.isPublic ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+                {selectedTrip.isPublic && (
+                  <div className="space-y-2 pt-2 border-t border-slate-850">
+                    <p className="text-xs text-slate-500">Anyone with this link can view this plan read-only:</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={shareUrl}
+                        className="flex-1 bg-slate-950/80 border border-slate-850 text-xs rounded-xl px-3 py-2 text-slate-400 focus:outline-none"
+                      />
+                      <button
+                        onClick={handleCopyLink}
+                        className="bg-indigo-950/50 hover:bg-indigo-900 border border-indigo-900 text-indigo-400 px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition"
+                      >
+                        {copied ? 'Copied! ✅' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Climate Outlook */}
+            {selectedTrip && !showCreateForm && selectedTrip.climate && (
+              <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                <h3 className="text-lg font-bold text-white">Climate Outlook</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850">
+                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Avg Temp</span>
+                    <span className="font-semibold text-slate-200">{selectedTrip.climate.temperatureRange || 'N/A'}</span>
+                  </div>
+                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850">
+                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Rainfall</span>
+                    <span className="font-semibold text-slate-200 text-xs truncate">{selectedTrip.climate.rainfall || 'N/A'}</span>
+                  </div>
+                </div>
+                {selectedTrip.climate.weatherSummary && (
+                  <p className="text-xs text-slate-400 bg-slate-950/20 border border-slate-850/50 p-3 rounded-xl leading-relaxed">
+                    ☀️ {selectedTrip.climate.weatherSummary}
+                  </p>
+                )}
               </div>
             )}
 

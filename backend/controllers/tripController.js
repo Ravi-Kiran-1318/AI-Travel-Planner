@@ -210,11 +210,18 @@ function generateMockTrip(destination, durationDays, budgetTier, interests) {
     isPacked: false
   }));
 
+  const climateData = {
+    Low: { temperatureRange: '12°C - 20°C', rainfall: 'Moderate (12 days/month)', weatherSummary: 'Mild and pleasant with periodic brief showers.' },
+    Medium: { temperatureRange: '18°C - 26°C', rainfall: 'Low (4 days/month)', weatherSummary: 'Warm, sunny and perfect for walking tours.' },
+    High: { temperatureRange: '25°C - 33°C', rainfall: 'High (18 days/month)', weatherSummary: 'Hot and humid climate with seasonal afternoon monsoon downpours.' }
+  }[budgetTier] || { temperatureRange: '15°C - 22°C', rainfall: 'Low', weatherSummary: 'Comfortable seasonal weather.' };
+
   return {
     itinerary,
     hotels: selectedHotels,
     estimatedBudget,
-    packingList: finalPackingList
+    packingList: finalPackingList,
+    climate: climateData
   };
 }
 
@@ -247,7 +254,8 @@ exports.generateNewTrip = async (req, res) => {
       itinerary: result.itinerary,
       hotels: result.hotels,
       estimatedBudget: result.estimatedBudget,
-      packingList: result.packingList
+      packingList: result.packingList,
+      climate: result.climate
     });
     const savedTrip = await newTrip.save();
     return res.status(201).json(savedTrip);
@@ -284,7 +292,12 @@ exports.generateNewTrip = async (req, res) => {
       "packingList": [
         { "item": "Passport", "category": "Documents", "isPacked": false },
         { "item": "Climate-appropriate clothing", "category": "Clothing", "isPacked": false }
-      ]
+      ],
+      "climate": {
+        "temperatureRange": "Average temperature range (e.g. 15°C - 22°C)",
+        "rainfall": "General rainfall likelihood (e.g. Low/Moderate/High or 5 days/month)",
+        "weatherSummary": "A short 1-sentence description of the expected weather conditions at this time of year"
+      }
     }
 
     Notes:
@@ -309,7 +322,12 @@ exports.generateNewTrip = async (req, res) => {
       itinerary: cleanResult.itinerary,
       hotels: cleanResult.hotels,
       estimatedBudget: cleanResult.estimatedBudget,
-      packingList: cleanResult.packingList
+      packingList: cleanResult.packingList,
+      climate: cleanResult.climate || {
+        temperatureRange: "15°C - 22°C",
+        rainfall: "Moderate",
+        weatherSummary: "Pleasant seasonal conditions expected."
+      }
     });
 
     const savedTrip = await newTrip.save();
@@ -327,7 +345,8 @@ exports.generateNewTrip = async (req, res) => {
       itinerary: result.itinerary,
       hotels: result.hotels,
       estimatedBudget: result.estimatedBudget,
-      packingList: result.packingList
+      packingList: result.packingList,
+      climate: result.climate
     });
     const savedTrip = await newTrip.save();
     return res.status(201).json(savedTrip);
@@ -359,6 +378,20 @@ exports.getTripById = async (req, res) => {
   }
 };
 
+// Get public trip (no authentication required)
+exports.getPublicTrip = async (req, res) => {
+  try {
+    const trip = await Trip.findOne({ _id: req.params.id, isPublic: true });
+    if (!trip) {
+      return res.status(404).json({ message: 'Itinerary not found or is set to private.' });
+    }
+    return res.status(200).json(trip);
+  } catch (error) {
+    console.error('Fetch public trip error:', error);
+    return res.status(500).json({ message: 'Error retrieving the public itinerary.' });
+  }
+};
+
 // Update entire trip data structures (activities, packing checklist toggles)
 exports.updateTrip = async (req, res) => {
   try {
@@ -372,6 +405,7 @@ exports.updateTrip = async (req, res) => {
     if (req.body.packingList) trip.packingList = req.body.packingList;
     if (req.body.estimatedBudget) trip.estimatedBudget = req.body.estimatedBudget;
     if (req.body.hotels) trip.hotels = req.body.hotels;
+    if (req.body.isPublic !== undefined) trip.isPublic = req.body.isPublic;
 
     const savedTrip = await trip.save();
     return res.status(200).json(savedTrip);
