@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { api } from '../../../utils/api';
 import { Trip } from '../../../types';
 import ItineraryCard from '../../../components/ItineraryCard';
@@ -80,18 +81,25 @@ export default function SharePage({ params }: { params: { id: string } }) {
       <div>
         {/* Header */}
         <header className="max-w-7xl mx-auto flex justify-between items-center border-b border-slate-900 pb-5 mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-              AI Travel Planner
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">Shared vacation view • Read-only</p>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 p-2.5 rounded-xl transition flex items-center justify-center no-print" title="Go to Home Page">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </Link>
+            <div>
+              <h1 className="text-xl md:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
+                Shared Itinerary
+              </h1>
+              <p className="text-xs text-slate-500 mt-1">Shared vacation view • Read-only</p>
+            </div>
           </div>
-          <a
+          <Link
             href="/register"
-            className="bg-indigo-600 hover:bg-indigo-500 transition text-white px-4 py-2 rounded-xl text-xs font-bold no-print"
+            className="bg-indigo-600 hover:bg-indigo-500 transition text-white px-4 py-2.5 rounded-xl text-xs font-bold no-print"
           >
             Create Your Own Plan ✈️
-          </a>
+          </Link>
         </header>
 
         <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">

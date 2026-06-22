@@ -2,11 +2,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '../../utils/api';
 import { Trip } from '../../types';
 import CreateTripForm from '../../components/CreateTripForm';
 import ItineraryCard from '../../components/ItineraryCard';
 import PackingList from '../../components/PackingList';
+
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      window.atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -16,6 +33,14 @@ export default function DashboardPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [username, setUsername] = useState('Traveler');
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
   // Sharing & Currency Conversion states
   const [currency, setCurrency] = useState<'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY'>('USD');
@@ -61,6 +86,10 @@ export default function DashboardPage() {
     if (!token) {
       router.push('/login');
       return;
+    }
+    const decoded = parseJwt(token);
+    if (decoded && decoded.username) {
+      setUsername(decoded.username);
     }
     loadTrips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -160,19 +189,36 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-between">
       <div>
         {/* Header */}
-        <header className="max-w-7xl mx-auto flex justify-between items-center border-b border-slate-900 pb-5 mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-              AI Travel Planner
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">Logged in • Enforced User Isolation Enclave</p>
+        <header className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-slate-900 pb-5 mb-8 gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 p-2.5 rounded-xl transition flex items-center justify-center no-print" title="Go to Home Page">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </Link>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
+                {getGreeting()}, {username}!
+              </h1>
+              <p className="text-xs text-slate-500 mt-1">Logged in • Enforced User Isolation Enclave</p>
+            </div>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="bg-red-500/10 hover:bg-red-500 border border-red-500/20 hover:border-red-500 transition text-red-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-4 no-print">
+            <div className="text-right hidden sm:block">
+              <p className="text-xs text-slate-500">Logged in as</p>
+              <p className="text-sm font-bold text-slate-200">{username}</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="bg-red-500/10 hover:bg-red-500 border border-red-500/20 hover:border-red-500 transition text-red-400 hover:text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5"
+              title="Sign Out"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Sign Out</span>
+            </button>
+          </div>
         </header>
 
         {/* Global error banner */}

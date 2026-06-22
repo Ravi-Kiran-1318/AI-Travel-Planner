@@ -78,7 +78,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
 
       if (res.ok) {
         const updatedData = await res.json();
-        onUpdateTrip(updatedData);
+        if (onUpdateTrip) onUpdateTrip(updatedData);
         // Reset form
         setNewActivityTitle('');
         setNewActivityDesc('');
@@ -131,7 +131,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
 
       if (res.ok) {
         const updatedData = await res.json();
-        onUpdateTrip(updatedData);
+        if (onUpdateTrip) onUpdateTrip(updatedData);
       }
     } catch (err) {
       console.error('Failed to remove activity:', err);
@@ -143,7 +143,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
     if (!regenInstructions.trim()) return;
     setIsRegenerating(true);
     try {
-      await onRegenerateDay(dayNumber, regenInstructions);
+      if (onRegenerateDay) await onRegenerateDay(dayNumber, regenInstructions);
       setRegenInstructions('');
       setActiveRegenDay(null);
     } catch (error) {
@@ -212,7 +212,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
 
       if (res.ok) {
         const updatedData = await res.json();
-        onUpdateTrip(updatedData);
+        if (onUpdateTrip) onUpdateTrip(updatedData);
         setActiveEditDay(null);
         setActiveEditIndex(null);
       }

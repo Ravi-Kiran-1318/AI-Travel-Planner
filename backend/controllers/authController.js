@@ -4,9 +4,9 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+    const { email, password, username } = req.body;
+    if (!email || !password || !username) {
+      return res.status(400).json({ message: 'Username, email, and password are required' });
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -19,18 +19,20 @@ exports.register = async (req, res) => {
 
     const newUser = new User({
       email: email.toLowerCase(),
-      password: hashedPassword
+      password: hashedPassword,
+      username: username.trim()
     });
 
     await newUser.save();
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: newUser._id, username: newUser.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     return res.status(201).json({
       token,
       user: {
         id: newUser._id,
-        email: newUser.email
+        email: newUser.email,
+        username: newUser.username
       }
     });
   } catch (error) {
@@ -56,13 +58,14 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     return res.status(200).json({
       token,
       user: {
         id: user._id,
-        email: user.email
+        email: user.email,
+        username: user.username
       }
     });
   } catch (error) {

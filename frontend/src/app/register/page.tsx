@@ -7,6 +7,7 @@ import { api } from '../../utils/api';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -31,7 +32,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const data = await api.auth.register({ email, password });
+      const data = await api.auth.register({ username, email, password });
       localStorage.setItem('token', data.token);
       router.push('/dashboard');
     } catch (err: any) {
@@ -65,6 +66,20 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="username" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              required
+              placeholder="e.g., travel_expert"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-650 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-200"
+            />
+          </div>
           <div>
             <label htmlFor="email" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               Email Address
