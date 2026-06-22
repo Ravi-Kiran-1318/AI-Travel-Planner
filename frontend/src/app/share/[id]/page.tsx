@@ -10,7 +10,8 @@ import RedirectOverlay from '../../../components/RedirectOverlay';
 
 export default function SharePage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const tripId = params.id;
+  const paramId = params.id;
+  const tripId = paramId.includes('-') ? paramId.split('-').pop()! : paramId;
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -176,14 +177,16 @@ export default function SharePage({ params }: { params: { id: string } }) {
             {trip.climate && (
               <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
                 <h3 className="text-lg font-bold text-white">Climate Outlook</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850">
-                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Avg Temp</span>
-                    <span className="font-semibold text-slate-200">{trip.climate.temperatureRange || 'N/A'}</span>
+                <div className="space-y-2.5 text-sm">
+                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850 flex items-center justify-between gap-4">
+                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Avg Temp</span>
+                    <span className="font-semibold text-slate-200 text-right">{trip.climate.temperatureRange || 'N/A'}</span>
                   </div>
-                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850">
-                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Rainfall</span>
-                    <span className="font-semibold text-slate-200 text-xs truncate">{trip.climate.rainfall || 'N/A'}</span>
+                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850 flex items-center justify-between gap-4">
+                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Rainfall</span>
+                    <span className="font-semibold text-slate-200 text-right truncate max-w-[150px]" title={trip.climate.rainfall || 'N/A'}>
+                      {trip.climate.rainfall || 'N/A'}
+                    </span>
                   </div>
                 </div>
                 {trip.climate.weatherSummary && (

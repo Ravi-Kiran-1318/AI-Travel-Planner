@@ -62,8 +62,20 @@ export default function DashboardPage() {
     return `${symbol}${(usdValue * rate).toFixed(0)}`;
   };
 
+  const slugify = (text: string) => {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  };
+
   const shareUrl = selectedTrip
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/share/${selectedTrip._id}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/share/${slugify(selectedTrip.destination)}-${selectedTrip._id}`
     : '';
 
   const handleToggleShare = async (newValue: boolean) => {
@@ -240,8 +252,8 @@ export default function DashboardPage() {
               className="bg-red-500/10 hover:bg-red-500 border border-red-500/20 hover:border-red-500 transition text-red-400 hover:text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5"
               title="Sign Out"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
               </svg>
               <span>Sign Out</span>
             </button>
@@ -412,14 +424,16 @@ export default function DashboardPage() {
             {selectedTrip && !showCreateForm && selectedTrip.climate && (
               <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
                 <h3 className="text-lg font-bold text-white">Climate Outlook</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850">
-                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Avg Temp</span>
-                    <span className="font-semibold text-slate-200">{selectedTrip.climate.temperatureRange || 'N/A'}</span>
+                <div className="space-y-2.5 text-sm">
+                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850 flex items-center justify-between gap-4">
+                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Avg Temp</span>
+                    <span className="font-semibold text-slate-200 text-right">{selectedTrip.climate.temperatureRange || 'N/A'}</span>
                   </div>
-                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850">
-                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Rainfall</span>
-                    <span className="font-semibold text-slate-200 text-xs truncate">{selectedTrip.climate.rainfall || 'N/A'}</span>
+                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850 flex items-center justify-between gap-4">
+                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Rainfall</span>
+                    <span className="font-semibold text-slate-200 text-right truncate max-w-[150px]" title={selectedTrip.climate.rainfall || 'N/A'}>
+                      {selectedTrip.climate.rainfall || 'N/A'}
+                    </span>
                   </div>
                 </div>
                 {selectedTrip.climate.weatherSummary && (
