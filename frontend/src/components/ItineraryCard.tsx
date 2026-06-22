@@ -6,9 +6,24 @@ interface ItineraryCardProps {
   onUpdateTrip?: (updatedTrip: Trip) => void;
   onRegenerateDay?: (dayNumber: number, instructions: string) => Promise<void>;
   isReadOnly?: boolean;
+  currency?: 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY';
 }
 
-export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isReadOnly = false }: ItineraryCardProps) {
+const CURRENCIES = {
+  USD: { symbol: '$', rate: 1.0 },
+  EUR: { symbol: '€', rate: 0.92 },
+  GBP: { symbol: '£', rate: 0.79 },
+  INR: { symbol: '₹', rate: 83.5 },
+  JPY: { symbol: '¥', rate: 158.0 },
+};
+
+export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isReadOnly = false, currency = 'USD' }: ItineraryCardProps) {
+  const { symbol: currencySymbol, rate: currencyRate } = CURRENCIES[currency];
+
+  const formatAmount = (usdValue: number) => {
+    return `${currencySymbol}${(usdValue * currencyRate).toFixed(0)}`;
+  };
+
   // Activity Inline Form state
   const [newActivityTitle, setNewActivityTitle] = useState('');
   const [newActivityDesc, setNewActivityDesc] = useState('');
@@ -42,7 +57,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
     const newAct: Activity = {
       title: newActivityTitle.trim(),
       description: newActivityDesc.trim() || 'Added by traveler',
-      estimatedCostUSD: Math.max(0, newActivityCost),
+      estimatedCostUSD: Math.max(0, Math.round(newActivityCost / currencyRate)),
       timeOfDay: newActivityTime,
     };
 
@@ -170,7 +185,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
     setActiveEditIndex(index);
     setEditActivityTitle(act.title);
     setEditActivityDesc(act.description || '');
-    setEditActivityCost(act.estimatedCostUSD);
+    setEditActivityCost(Math.round(act.estimatedCostUSD * currencyRate));
     setEditActivityTime(act.timeOfDay);
     setActiveAddDay(null);
     setActiveRegenDay(null);
@@ -187,7 +202,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
         copyActs[activeEditIndex] = {
           title: editActivityTitle.trim(),
           description: editActivityDesc.trim() || 'Updated by traveler',
-          estimatedCostUSD: Math.max(0, editActivityCost),
+          estimatedCostUSD: Math.max(0, Math.round(editActivityCost / currencyRate)),
           timeOfDay: editActivityTime,
         };
         return {
@@ -351,7 +366,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl px-3 py-1">
-                    <span className="text-slate-500 text-xs mr-2">$</span>
+                    <span className="text-slate-500 text-xs mr-2">{currencySymbol}</span>
                     <input
                       type="number"
                       placeholder="Cost (USD)"
@@ -425,7 +440,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex items-center bg-slate-900 border border-slate-850 rounded-xl px-3 py-1">
-                          <span className="text-slate-500 text-xs mr-2">$</span>
+                          <span className="text-slate-500 text-xs mr-2">{currencySymbol}</span>
                           <input
                             type="number"
                             value={editActivityCost || ''}
@@ -491,7 +506,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
                           </span>
                           {act.estimatedCostUSD > 0 && (
                             <span className="text-emerald-400 text-xs font-semibold font-mono">
-                              ${act.estimatedCostUSD}
+                              {formatAmount(act.estimatedCostUSD)}
                             </span>
                           )}
                         </div>

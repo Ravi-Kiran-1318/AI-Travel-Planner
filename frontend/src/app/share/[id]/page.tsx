@@ -213,7 +213,7 @@ export default function SharePage({ params }: { params: { id: string } }) {
                         <span>{hotel.tier || 'Suggested'}</span>
                         {hotel.estimatedCostNightUSD && (
                           <span className="text-slate-400 font-mono font-semibold">
-                            ${hotel.estimatedCostNightUSD}/night
+                            {formatAmount(hotel.estimatedCostNightUSD)}/night
                           </span>
                         )}
                       </div>
@@ -226,7 +226,7 @@ export default function SharePage({ params }: { params: { id: string } }) {
 
           {/* Right panel: Itinerary, Packing Checklist */}
           <div className="lg:col-span-2 space-y-8">
-            <ItineraryCard trip={trip} isReadOnly={true} />
+            <ItineraryCard trip={trip} isReadOnly={true} currency={currency} />
             <PackingList trip={trip} isReadOnly={true} />
           </div>
         </main>

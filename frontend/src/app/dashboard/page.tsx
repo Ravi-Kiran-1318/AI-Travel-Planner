@@ -235,10 +235,6 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-4 no-print">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs text-slate-500">Logged in as</p>
-              <p className="text-sm font-bold text-slate-200">{username}</p>
-            </div>
             <button
               onClick={handleSignOut}
               className="bg-red-500/10 hover:bg-red-500 border border-red-500/20 hover:border-red-500 transition text-red-400 hover:text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5"
@@ -453,7 +449,7 @@ export default function DashboardPage() {
                         <span>{hotel.tier || 'Suggested'}</span>
                         {hotel.estimatedCostNightUSD && (
                           <span className="text-slate-400 font-mono font-semibold">
-                            ${hotel.estimatedCostNightUSD}/night
+                            {formatAmount(hotel.estimatedCostNightUSD)}/night
                           </span>
                         )}
                       </div>
@@ -472,6 +468,7 @@ export default function DashboardPage() {
                   trip={selectedTrip}
                   onUpdateTrip={handleUpdateTripState}
                   onRegenerateDay={handleRegenerateDay}
+                  currency={currency}
                 />
                 <PackingList trip={selectedTrip} onUpdateTrip={handleUpdateTripState} />
               </>

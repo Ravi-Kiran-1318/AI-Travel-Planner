@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import RedirectOverlay from '../components/RedirectOverlay';
 
@@ -8,6 +8,28 @@ export default function LandingPage() {
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [redirectMessage, setRedirectMessage] = useState('Navigating...');
+  const [hasSession, setHasSession] = useState(false);
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setHasSession(true);
+      const savedUser = localStorage.getItem('savedUsername');
+      if (savedUser) {
+        setUsername(savedUser);
+      } else {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const decoded = JSON.parse(window.atob(base64));
+          setUsername(decoded?.username || 'Traveler');
+        } catch (e) {
+          setUsername('Traveler');
+        }
+      }
+    }
+  }, []);
 
   const handleRedirect = (path: string, message: string = 'Navigating...') => {
     setRedirectMessage(message);
@@ -15,13 +37,21 @@ export default function LandingPage() {
     router.push(path);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('savedUsername');
+    localStorage.removeItem('lastActive');
+    setHasSession(false);
+    setUsername('');
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden animate-pageFadeIn">
       {isRedirecting && <RedirectOverlay message={redirectMessage} />}
       
       {/* Decorative gradients */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
       <header className="max-w-7xl mx-auto w-full px-6 py-6 flex justify-between items-center border-b border-slate-900 z-10">
@@ -32,18 +62,44 @@ export default function LandingPage() {
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => handleRedirect('/login', 'Connecting to Session...')}
-            className="text-slate-400 hover:text-white text-sm font-semibold transition"
-          >
-            Login
-          </button>
-          <button
-            onClick={() => handleRedirect('/register', 'Preparing Portal...')}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition shadow-lg shadow-indigo-600/20"
-          >
-            Sign Up
-          </button>
+          {hasSession ? (
+            <>
+              <div className="hidden sm:flex items-center gap-2 bg-slate-900/60 border border-slate-800 px-4 py-2 rounded-xl text-xs">
+                <span className="text-slate-500">👤 Logged in as</span>
+                <span className="font-semibold text-indigo-400">{username}</span>
+              </div>
+              <button
+                onClick={() => handleRedirect('/dashboard', 'Loading Workspace...')}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20"
+              >
+                Go to Dashboard
+              </button>
+              <button
+                onClick={handleLogout}
+                className="bg-red-500/10 hover:bg-red-500 border border-red-500/20 hover:border-red-500 text-red-400 hover:text-white p-2.5 rounded-xl transition flex items-center justify-center"
+                title="Log Out"
+              >
+                <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => handleRedirect('/login', 'Connecting to Session...')}
+                className="text-slate-400 hover:text-white text-sm font-semibold transition"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => handleRedirect('/register', 'Preparing Portal...')}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition shadow-lg shadow-indigo-600/20"
+              >
+                Sign Up
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -60,18 +116,29 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-16">
-          <button
-            onClick={() => handleRedirect('/register', 'Creating Workspace...')}
-            className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 hover:from-blue-600 hover:via-indigo-650 hover:to-purple-700 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl hover:shadow-indigo-500/20 transition duration-300 transform hover:-translate-y-0.5"
-          >
-            Start Planning For Free
-          </button>
-          <button
-            onClick={() => handleRedirect('/login', 'Opening Travel Dashboard...')}
-            className="bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-base px-8 py-4 rounded-2xl border border-slate-800 transition duration-300"
-          >
-            Sign In to Dashboard
-          </button>
+          {hasSession ? (
+            <button
+              onClick={() => handleRedirect('/dashboard', 'Opening Dashboard...')}
+              className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 hover:from-blue-600 hover:via-indigo-650 hover:to-purple-700 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl hover:shadow-indigo-500/20 transition duration-300 transform hover:-translate-y-0.5"
+            >
+              Go to Your Dashboard
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => handleRedirect('/register', 'Creating Workspace...')}
+                className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 hover:from-blue-600 hover:via-indigo-650 hover:to-purple-700 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl hover:shadow-indigo-500/20 transition duration-300 transform hover:-translate-y-0.5"
+              >
+                Start Planning For Free
+              </button>
+              <button
+                onClick={() => handleRedirect('/login', 'Opening Travel Dashboard...')}
+                className="bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-base px-8 py-4 rounded-2xl border border-slate-800 transition duration-300"
+              >
+                Sign In to Dashboard
+              </button>
+            </>
+          )}
         </div>
 
         {/* Feature Cards Grid */}
