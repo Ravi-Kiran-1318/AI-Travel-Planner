@@ -251,6 +251,8 @@ export default function SharePage({ params }: { params: { id: string } }) {
                 source={trip.source || ''}
                 destination={trip.destination}
                 transportMode={trip.transportMode || 'Flight'}
+                sourceCoords={trip.sourceCoords}
+                destinationCoords={trip.destinationCoords}
               />
             </div>
 

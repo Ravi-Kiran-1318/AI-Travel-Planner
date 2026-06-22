@@ -48,6 +48,8 @@ export interface Trip {
   source?: string;
   transportMode?: string;
   transitCostUSD?: number;
+  sourceCoords?: number[];
+  destinationCoords?: number[];
   climate?: {
     temperatureRange: string;
     rainfall: string;

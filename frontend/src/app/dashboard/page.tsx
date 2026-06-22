@@ -20,6 +20,44 @@ const Map = dynamic(() => import('../../components/Map'), {
   )
 });
 
+const TRANSPORT_RATES = {
+  Flight: 0.12,
+  Train: 0.08,
+  Driving: 0.06,
+  Bus: 0.04
+};
+
+async function geocodeClient(query: string): Promise<[number, number] | null> {
+  if (!query) return null;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+      headers: {
+        'User-Agent': 'AITravelPlannerFrontend/1.0'
+      }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    }
+  } catch (error) {
+    console.error(`Client geocoding error for ${query}:`, error);
+  }
+  return null;
+}
+
+function getHaversineDistance(coords1: { lat: number; lon: number }, coords2: { lat: number; lon: number }) {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (coords2.lat - coords1.lat) * Math.PI / 180;
+  const dLon = (coords2.lon - coords1.lon) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(coords1.lat * Math.PI / 180) * Math.cos(coords2.lat * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
+
 function parseJwt(token: string) {
   try {
     const base64Url = token.split('.')[1];
@@ -157,7 +195,27 @@ export default function DashboardPage() {
     setFormLoading(true);
     setError('');
     try {
-      const newTrip = await api.trips.create(formData);
+      const destCoords = await geocodeClient(formData.destination);
+      const sourceCoords = formData.source ? await geocodeClient(formData.source) : null;
+      
+      let transitCost = 0;
+      if (sourceCoords && destCoords) {
+        const dist = getHaversineDistance(
+          { lat: sourceCoords[0], lon: sourceCoords[1] },
+          { lat: destCoords[0], lon: destCoords[1] }
+        );
+        const rate = TRANSPORT_RATES[formData.transportMode as keyof typeof TRANSPORT_RATES] || 0.12;
+        transitCost = Math.round(dist * rate);
+      }
+
+      const payload = {
+        ...formData,
+        transitCostUSD: transitCost,
+        sourceCoords: sourceCoords || undefined,
+        destinationCoords: destCoords || undefined
+      };
+
+      const newTrip = await api.trips.create(payload);
       setTrips((prevTrips) => [newTrip, ...prevTrips]);
       setSelectedTrip(newTrip);
       setShowCreateForm(false);
@@ -516,9 +574,29 @@ export default function DashboardPage() {
                             });
                           }}
                           onBlur={async (e) => {
+                            const newSource = e.target.value;
                             try {
+                              const sourceCoords = newSource ? await geocodeClient(newSource) : null;
+                              let destCoords: number[] | null = selectedTrip.destinationCoords || null;
+                              if (!destCoords || destCoords.length !== 2) {
+                                destCoords = await geocodeClient(selectedTrip.destination);
+                              }
+
+                              let transitCost = 0;
+                              if (sourceCoords && destCoords && destCoords.length === 2) {
+                                const dist = getHaversineDistance(
+                                  { lat: sourceCoords[0], lon: sourceCoords[1] },
+                                  { lat: destCoords[0], lon: destCoords[1] }
+                                );
+                                const rate = TRANSPORT_RATES[selectedTrip.transportMode as keyof typeof TRANSPORT_RATES] || 0.12;
+                                transitCost = Math.round(dist * rate);
+                              }
+
                               const updated = await api.trips.update(selectedTrip._id, {
-                                source: e.target.value
+                                source: newSource,
+                                transitCostUSD: transitCost,
+                                sourceCoords: sourceCoords || [],
+                                destinationCoords: destCoords || []
                               });
                               handleUpdateTripState(updated);
                             } catch (err) {
@@ -542,9 +620,33 @@ export default function DashboardPage() {
                               ...selectedTrip,
                               transportMode: mode
                             });
+                            
                             try {
+                              let sourceCoords: number[] | null = selectedTrip.sourceCoords || null;
+                              let destCoords: number[] | null = selectedTrip.destinationCoords || null;
+
+                              if ((!sourceCoords || sourceCoords.length !== 2) && selectedTrip.source) {
+                                sourceCoords = await geocodeClient(selectedTrip.source);
+                              }
+                              if ((!destCoords || destCoords.length !== 2) && selectedTrip.destination) {
+                                destCoords = await geocodeClient(selectedTrip.destination);
+                              }
+
+                              let transitCost = 0;
+                              if (sourceCoords && sourceCoords.length === 2 && destCoords && destCoords.length === 2) {
+                                const dist = getHaversineDistance(
+                                  { lat: sourceCoords[0], lon: sourceCoords[1] },
+                                  { lat: destCoords[0], lon: destCoords[1] }
+                                );
+                                const rate = TRANSPORT_RATES[mode as keyof typeof TRANSPORT_RATES] || 0.12;
+                                transitCost = Math.round(dist * rate);
+                              }
+
                               const updated = await api.trips.update(selectedTrip._id, {
-                                transportMode: mode
+                                transportMode: mode,
+                                transitCostUSD: transitCost,
+                                sourceCoords: sourceCoords || [],
+                                destinationCoords: destCoords || []
                               });
                               handleUpdateTripState(updated);
                             } catch (err) {
@@ -566,6 +668,8 @@ export default function DashboardPage() {
                     source={selectedTrip.source || ''}
                     destination={selectedTrip.destination}
                     transportMode={selectedTrip.transportMode || 'Flight'}
+                    sourceCoords={selectedTrip.sourceCoords}
+                    destinationCoords={selectedTrip.destinationCoords}
                   />
                 </div>
 

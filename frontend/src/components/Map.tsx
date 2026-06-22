@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,27 +7,33 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-
 const createCustomIcon = (color: string, label: string) => {
   return L.divIcon({
     html: `
-      <div style="position: relative; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="32" height="32" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+      <div style="position: relative; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="36" height="36" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
         </svg>
-        <span style="position: absolute; color: white; font-size: 8px; font-weight: bold; top: 6px; font-family: sans-serif;">${label}</span>
+        <span style="position: absolute; font-size: 11px; top: 6px; left: 50%; transform: translateX(-50%);">${label}</span>
       </div>
     `,
     className: 'custom-leaflet-icon',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
   });
 };
 
-const sourceIcon = createCustomIcon('#10b981', 'S'); // Green for Source
-const destIcon = createCustomIcon('#ef4444', 'D');   // Red for Destination
+const TRANSPORT_EMOJIS = {
+  Flight: '✈️',
+  Train: '🚆',
+  Driving: '🚗',
+  Bus: '🚌'
+};
 
 interface MapComponentProps {
   source: string;
   destination: string;
   transportMode: string;
+  sourceCoords?: number[];
+  destinationCoords?: number[];
 }
 
 // Internal component to fit bounds when markers change
@@ -64,12 +68,31 @@ async function geocodeClient(query: string): Promise<[number, number] | null> {
   return null;
 }
 
-export default function MapComponent({ source, destination, transportMode }: MapComponentProps) {
+export default function MapComponent({ 
+  source, 
+  destination, 
+  transportMode,
+  sourceCoords: propSourceCoords,
+  destinationCoords: propDestCoords
+}: MapComponentProps) {
   const [sourceCoords, setSourceCoords] = useState<[number, number] | null>(null);
   const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
+  const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // If coordinates are already saved, load them instantly
+    if (propDestCoords && propDestCoords.length === 2) {
+      setDestCoords([propDestCoords[0], propDestCoords[1]]);
+      if (propSourceCoords && propSourceCoords.length === 2) {
+        setSourceCoords([propSourceCoords[0], propSourceCoords[1]]);
+      } else {
+        setSourceCoords(null);
+      }
+      setLoading(false);
+      return;
+    }
+
     let active = true;
     const fetchCoords = async () => {
       if (!destination) {
@@ -104,27 +127,61 @@ export default function MapComponent({ source, destination, transportMode }: Map
     return () => {
       active = false;
     };
-  }, [source, destination]);
+  }, [source, destination, propSourceCoords, propDestCoords]);
+
+  // Fetch real road route from OSRM for land modes
+  const isFlight = transportMode === 'Flight';
+  useEffect(() => {
+    if (!sourceCoords || !destCoords) {
+      setRouteCoords(null);
+      return;
+    }
+
+    if (isFlight) {
+      setRouteCoords([sourceCoords, destCoords]);
+      return;
+    }
+
+    const fetchOSRMRoute = async () => {
+      try {
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${sourceCoords[1]},${sourceCoords[0]};${destCoords[1]},${destCoords[0]}?overview=full&geometries=geojson`
+        );
+        if (!response.ok) throw new Error("OSRM failed");
+        const data = await response.json();
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const coordinates = data.routes[0].geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as [number, number]);
+          setRouteCoords(coordinates);
+        } else {
+          setRouteCoords([sourceCoords, destCoords]);
+        }
+      } catch (err) {
+        console.warn("OSRM routing failed, falling back to straight-line:", err);
+        setRouteCoords([sourceCoords, destCoords]);
+      }
+    };
+
+    fetchOSRMRoute();
+  }, [sourceCoords, destCoords, isFlight]);
 
   const markers: [number, number][] = [];
   if (sourceCoords) markers.push(sourceCoords);
   if (destCoords) markers.push(destCoords);
 
-  const isFlight = transportMode === 'Flight';
-
   // Fallback to center on destination or world if loading/empty
   const defaultCenter: [number, number] = destCoords || [20, 0];
   const defaultZoom = destCoords ? 10 : 2;
 
+  const transportEmoji = TRANSPORT_EMOJIS[transportMode as keyof typeof TRANSPORT_EMOJIS] || '✈️';
+  const sourceIcon = createCustomIcon('#10b981', transportEmoji);
+  const destIcon = createCustomIcon('#ef4444', '🏁');
+
   return (
-    <div className="relative w-full h-80 rounded-2xl overflow-hidden shadow-2xl border border-white/10 no-print my-6 bg-slate-900">
+    <div className="relative w-full h-80 rounded-2xl overflow-hidden shadow-2xl border border-white/10 no-print my-6 bg-slate-900 z-0">
       <style dangerouslySetInnerHTML={{
         __html: `
-          .dark-map .leaflet-tile {
-            filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%);
-          }
-          .dark-map .leaflet-container {
-            background: #0f172a;
+          .leaflet-container {
+            background: #cbd5e1;
           }
         `
       }} />
@@ -141,7 +198,7 @@ export default function MapComponent({ source, destination, transportMode }: Map
           center={defaultCenter}
           zoom={defaultZoom}
           scrollWheelZoom={false}
-          className="w-full h-full dark-map"
+          className="w-full h-full"
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -168,11 +225,11 @@ export default function MapComponent({ source, destination, transportMode }: Map
             </Popup>
           </Marker>
 
-          {sourceCoords && destCoords && (
+          {routeCoords && (
             <Polyline
-              positions={[sourceCoords, destCoords]}
+              positions={routeCoords}
               color={isFlight ? '#10b981' : '#3b82f6'}
-              weight={isFlight ? 3 : 4}
+              weight={isFlight ? 3 : 5}
               opacity={0.8}
               dashArray={isFlight ? '6, 8' : undefined}
             />

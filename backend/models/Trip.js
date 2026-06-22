@@ -43,6 +43,8 @@ const TripSchema = new mongoose.Schema({
   source: { type: String, default: '' },
   transportMode: { type: String, enum: ['Flight', 'Train', 'Driving', 'Bus'], default: 'Flight' },
   transitCostUSD: { type: Number, default: 0 },
+  sourceCoords: { type: [Number], default: [] },
+  destinationCoords: { type: [Number], default: [] },
   climate: {
     temperatureRange: { type: String, default: '' },
     rainfall: { type: String, default: '' },

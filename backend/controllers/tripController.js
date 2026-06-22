@@ -293,7 +293,7 @@ function getHaversineDistance(coords1, coords2) {
 
 // Generate itinerary
 exports.generateNewTrip = async (req, res) => {
-  const { destination, durationDays, budgetTier, interests, source, transportMode } = req.body;
+  const { destination, durationDays, budgetTier, interests, source, transportMode, sourceCoords, destinationCoords, transitCostUSD } = req.body;
   const userId = req.user.id; // From auth middleware
 
   if (!destination || !durationDays || !budgetTier) {
@@ -307,19 +307,31 @@ exports.generateNewTrip = async (req, res) => {
 
   const selectedInterests = Array.isArray(interests) ? interests : [];
 
+  const sourceQuery = source || '';
+  const transportPref = transportMode || 'Flight';
+  const tripSourceCoords = sourceCoords || [];
+  const tripDestCoords = destinationCoords || [];
+
   // Fallback to Mock generator if API key is not present
   if (!process.env.GEMINI_API_KEY) {
     console.info('GEMINI_API_KEY not found. Using local mock generator...');
     const result = generateMockTrip(destination, duration, budgetTier, selectedInterests);
     
     let transitCost = 0;
-    const sourceQuery = source || '';
-    const transportPref = transportMode || 'Flight';
-    if (sourceQuery && destination) {
-      const sourceCoords = await geocodeAddress(sourceQuery);
-      const destCoords = await geocodeAddress(destination);
-      if (sourceCoords && destCoords) {
-        const dist = getHaversineDistance(sourceCoords, destCoords);
+    if (transitCostUSD !== undefined) {
+      transitCost = transitCostUSD;
+    } else if (sourceQuery && destination) {
+      let sCoords = null;
+      let dCoords = null;
+      if (tripSourceCoords.length === 2 && tripDestCoords.length === 2) {
+        sCoords = { lat: tripSourceCoords[0], lon: tripSourceCoords[1] };
+        dCoords = { lat: tripDestCoords[0], lon: tripDestCoords[1] };
+      } else {
+        sCoords = await geocodeAddress(sourceQuery);
+        dCoords = await geocodeAddress(destination);
+      }
+      if (sCoords && dCoords) {
+        const dist = getHaversineDistance(sCoords, dCoords);
         const rate = TRANSPORT_RATES[transportPref] || 0.12;
         transitCost = Math.round(dist * rate);
       }
@@ -336,6 +348,8 @@ exports.generateNewTrip = async (req, res) => {
       source: sourceQuery,
       transportMode: transportPref,
       transitCostUSD: transitCost,
+      sourceCoords: tripSourceCoords,
+      destinationCoords: tripDestCoords,
       itinerary: result.itinerary,
       hotels: result.hotels,
       estimatedBudget: {
@@ -403,13 +417,20 @@ exports.generateNewTrip = async (req, res) => {
     const cleanResult = await callGeminiWithRetry(prompt);
 
     let transitCost = 0;
-    const sourceQuery = source || '';
-    const transportPref = transportMode || 'Flight';
-    if (sourceQuery && destination) {
-      const sourceCoords = await geocodeAddress(sourceQuery);
-      const destCoords = await geocodeAddress(destination);
-      if (sourceCoords && destCoords) {
-        const dist = getHaversineDistance(sourceCoords, destCoords);
+    if (transitCostUSD !== undefined) {
+      transitCost = transitCostUSD;
+    } else if (sourceQuery && destination) {
+      let sCoords = null;
+      let dCoords = null;
+      if (tripSourceCoords.length === 2 && tripDestCoords.length === 2) {
+        sCoords = { lat: tripSourceCoords[0], lon: tripSourceCoords[1] };
+        dCoords = { lat: tripDestCoords[0], lon: tripDestCoords[1] };
+      } else {
+        sCoords = await geocodeAddress(sourceQuery);
+        dCoords = await geocodeAddress(destination);
+      }
+      if (sCoords && dCoords) {
+        const dist = getHaversineDistance(sCoords, dCoords);
         const rate = TRANSPORT_RATES[transportPref] || 0.12;
         transitCost = Math.round(dist * rate);
       }
@@ -426,6 +447,8 @@ exports.generateNewTrip = async (req, res) => {
       source: sourceQuery,
       transportMode: transportPref,
       transitCostUSD: transitCost,
+      sourceCoords: tripSourceCoords,
+      destinationCoords: tripDestCoords,
       itinerary: cleanResult.itinerary,
       hotels: cleanResult.hotels,
       estimatedBudget: {
@@ -449,13 +472,20 @@ exports.generateNewTrip = async (req, res) => {
     const result = generateMockTrip(destination, duration, budgetTier, selectedInterests);
     
     let transitCost = 0;
-    const sourceQuery = source || '';
-    const transportPref = transportMode || 'Flight';
-    if (sourceQuery && destination) {
-      const sourceCoords = await geocodeAddress(sourceQuery);
-      const destCoords = await geocodeAddress(destination);
-      if (sourceCoords && destCoords) {
-        const dist = getHaversineDistance(sourceCoords, destCoords);
+    if (transitCostUSD !== undefined) {
+      transitCost = transitCostUSD;
+    } else if (sourceQuery && destination) {
+      let sCoords = null;
+      let dCoords = null;
+      if (tripSourceCoords.length === 2 && tripDestCoords.length === 2) {
+        sCoords = { lat: tripSourceCoords[0], lon: tripSourceCoords[1] };
+        dCoords = { lat: tripDestCoords[0], lon: tripDestCoords[1] };
+      } else {
+        sCoords = await geocodeAddress(sourceQuery);
+        dCoords = await geocodeAddress(destination);
+      }
+      if (sCoords && dCoords) {
+        const dist = getHaversineDistance(sCoords, dCoords);
         const rate = TRANSPORT_RATES[transportPref] || 0.12;
         transitCost = Math.round(dist * rate);
       }
@@ -472,6 +502,8 @@ exports.generateNewTrip = async (req, res) => {
       source: sourceQuery,
       transportMode: transportPref,
       transitCostUSD: transitCost,
+      sourceCoords: tripSourceCoords,
+      destinationCoords: tripDestCoords,
       itinerary: result.itinerary,
       hotels: result.hotels,
       estimatedBudget: {
@@ -553,22 +585,45 @@ exports.updateTrip = async (req, res) => {
       trip.destination = req.body.destination;
       recalculateBudget = true;
     }
+    if (req.body.sourceCoords !== undefined) {
+      trip.sourceCoords = req.body.sourceCoords;
+      recalculateBudget = true;
+    }
+    if (req.body.destinationCoords !== undefined) {
+      trip.destinationCoords = req.body.destinationCoords;
+      recalculateBudget = true;
+    }
+    if (req.body.transitCostUSD !== undefined) {
+      trip.transitCostUSD = req.body.transitCostUSD;
+      trip.estimatedBudget.transport = req.body.transitCostUSD;
+      recalculateBudget = false; // Bypass backend geocoding recalculations
+    }
 
-    if (recalculateBudget) {
-      const sourceQuery = trip.source;
-      const destQuery = trip.destination;
-      if (sourceQuery && destQuery) {
-        const sourceCoords = await geocodeAddress(sourceQuery);
-        const destCoords = await geocodeAddress(destQuery);
-        if (sourceCoords && destCoords) {
-          const dist = getHaversineDistance(sourceCoords, destCoords);
-          const rate = TRANSPORT_RATES[trip.transportMode] || 0.12;
-          trip.transitCostUSD = Math.round(dist * rate);
+    if (recalculateBudget && req.body.transitCostUSD === undefined) {
+      if (trip.sourceCoords && trip.sourceCoords.length === 2 && trip.destinationCoords && trip.destinationCoords.length === 2) {
+        const sCoords = { lat: trip.sourceCoords[0], lon: trip.sourceCoords[1] };
+        const dCoords = { lat: trip.destinationCoords[0], lon: trip.destinationCoords[1] };
+        const dist = getHaversineDistance(sCoords, dCoords);
+        const rate = TRANSPORT_RATES[trip.transportMode] || 0.12;
+        trip.transitCostUSD = Math.round(dist * rate);
+      } else {
+        const sourceQuery = trip.source;
+        const destQuery = trip.destination;
+        if (sourceQuery && destQuery) {
+          const sCoords = await geocodeAddress(sourceQuery);
+          const dCoords = await geocodeAddress(destQuery);
+          if (sCoords && dCoords) {
+            trip.sourceCoords = [sCoords.lat, sCoords.lon];
+            trip.destinationCoords = [dCoords.lat, dCoords.lon];
+            const dist = getHaversineDistance(sCoords, dCoords);
+            const rate = TRANSPORT_RATES[trip.transportMode] || 0.12;
+            trip.transitCostUSD = Math.round(dist * rate);
+          } else {
+            trip.transitCostUSD = 0;
+          }
         } else {
           trip.transitCostUSD = 0;
         }
-      } else {
-        trip.transitCostUSD = 0;
       }
       trip.estimatedBudget.transport = trip.transitCostUSD;
     }
@@ -577,7 +632,9 @@ exports.updateTrip = async (req, res) => {
       trip.estimatedBudget = {
         ...trip.estimatedBudget.toObject(),
         ...req.body.estimatedBudget,
-        transport: recalculateBudget ? trip.transitCostUSD : (req.body.estimatedBudget.transport !== undefined ? req.body.estimatedBudget.transport : trip.estimatedBudget.transport)
+        transport: (req.body.transitCostUSD !== undefined) 
+          ? req.body.transitCostUSD 
+          : (recalculateBudget ? trip.transitCostUSD : (req.body.estimatedBudget.transport !== undefined ? req.body.estimatedBudget.transport : trip.estimatedBudget.transport))
       };
     }
 
