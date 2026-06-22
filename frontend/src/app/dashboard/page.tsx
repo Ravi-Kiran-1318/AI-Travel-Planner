@@ -3,12 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { api } from '../../utils/api';
 import { Trip } from '../../types';
 import CreateTripForm from '../../components/CreateTripForm';
 import ItineraryCard from '../../components/ItineraryCard';
 import PackingList from '../../components/PackingList';
 import RedirectOverlay from '../../components/RedirectOverlay';
+
+const Map = dynamic(() => import('../../components/Map'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-80 rounded-2xl bg-slate-900 animate-pulse flex items-center justify-center text-slate-500 border border-white/5 my-6">
+      Loading interactive map...
+    </div>
+  )
+});
 
 function parseJwt(token: string) {
   try {
@@ -141,6 +151,8 @@ export default function DashboardPage() {
     durationDays: number;
     budgetTier: string;
     interests: string[];
+    source: string;
+    transportMode: string;
   }) => {
     setFormLoading(true);
     setError('');
@@ -478,6 +490,85 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 space-y-8">
             {selectedTrip && !showCreateForm ? (
               <>
+                {/* Route Map & Transit Settings */}
+                <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Route Map & Transport</h3>
+                      <p className="text-xs text-slate-500 mt-1">Estimate distance-based transit fees and preview your route</p>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                      <div className="flex-1 sm:flex-none">
+                        <label htmlFor="editSource" className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                          From (Source)
+                        </label>
+                        <input
+                          id="editSource"
+                          type="text"
+                          placeholder="e.g., London"
+                          value={selectedTrip.source || ''}
+                          onChange={(e) => {
+                            const newSource = e.target.value;
+                            handleUpdateTripState({
+                              ...selectedTrip,
+                              source: newSource
+                            });
+                          }}
+                          onBlur={async (e) => {
+                            try {
+                              const updated = await api.trips.update(selectedTrip._id, {
+                                source: e.target.value
+                              });
+                              handleUpdateTripState(updated);
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                          className="bg-slate-950 border border-slate-800 text-slate-200 rounded-xl text-xs py-2 px-3 outline-none focus:border-indigo-500 w-full sm:w-48 font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="editTransport" className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                          Transit Mode
+                        </label>
+                        <select
+                          id="editTransport"
+                          value={selectedTrip.transportMode || 'Flight'}
+                          onChange={async (e) => {
+                            const mode = e.target.value;
+                            handleUpdateTripState({
+                              ...selectedTrip,
+                              transportMode: mode
+                            });
+                            try {
+                              const updated = await api.trips.update(selectedTrip._id, {
+                                transportMode: mode
+                              });
+                              handleUpdateTripState(updated);
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                          className="bg-slate-950 border border-slate-800 text-slate-200 rounded-xl text-xs py-2.5 px-3 outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                        >
+                          <option value="Flight">✈️ Flight</option>
+                          <option value="Train">🚆 Train</option>
+                          <option value="Driving">🚗 Driving</option>
+                          <option value="Bus">🚌 Bus</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Map
+                    source={selectedTrip.source || ''}
+                    destination={selectedTrip.destination}
+                    transportMode={selectedTrip.transportMode || 'Flight'}
+                  />
+                </div>
+
                 <ItineraryCard
                   trip={selectedTrip}
                   onUpdateTrip={handleUpdateTripState}

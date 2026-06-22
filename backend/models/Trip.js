@@ -40,6 +40,9 @@ const TripSchema = new mongoose.Schema({
     isPacked: { type: Boolean, default: false }
   }],
   isPublic: { type: Boolean, default: false },
+  source: { type: String, default: '' },
+  transportMode: { type: String, enum: ['Flight', 'Train', 'Driving', 'Bus'], default: 'Flight' },
+  transitCostUSD: { type: Number, default: 0 },
   climate: {
     temperatureRange: { type: String, default: '' },
     rainfall: { type: String, default: '' },

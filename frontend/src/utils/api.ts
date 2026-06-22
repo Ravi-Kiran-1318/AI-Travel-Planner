@@ -56,7 +56,14 @@ export const api = {
         method: 'GET',
       }),
       
-    create: (tripData: { destination: string; durationDays: number; budgetTier: string; interests: string[] }) => 
+    create: (tripData: {
+      destination: string;
+      durationDays: number;
+      budgetTier: string;
+      interests: string[];
+      source?: string;
+      transportMode?: string;
+    }) => 
       request<any>('/api/trips', {
         method: 'POST',
         body: JSON.stringify(tripData),

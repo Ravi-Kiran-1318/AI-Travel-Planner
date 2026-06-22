@@ -225,9 +225,75 @@ function generateMockTrip(destination, durationDays, budgetTier, interests) {
   };
 }
 
+const TRANSPORT_RATES = {
+  Flight: 0.12,
+  Train: 0.08,
+  Driving: 0.06,
+  Bus: 0.04
+};
+
+function geocodeAddress(address) {
+  return new Promise((resolve) => {
+    if (!address) return resolve(null);
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+    const parsedUrl = new URL(url);
+    const options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'AITravelPlanner/1.0 (contact@example.com)'
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const data = JSON.parse(body);
+            if (data && data.length > 0) {
+              resolve({
+                lat: parseFloat(data[0].lat),
+                lon: parseFloat(data[0].lon)
+              });
+            } else {
+              resolve(null);
+            }
+          } catch (e) {
+            resolve(null);
+          }
+        } else {
+          resolve(null);
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.warn(`Geocoding error for ${address}:`, err.message);
+      resolve(null);
+    });
+    req.end();
+  });
+}
+
+function getHaversineDistance(coords1, coords2) {
+  if (!coords1 || !coords2) return 0;
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (coords2.lat - coords1.lat) * Math.PI / 180;
+  const dLon = (coords2.lon - coords1.lon) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(coords1.lat * Math.PI / 180) * Math.cos(coords2.lat * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
+
 // Generate itinerary
 exports.generateNewTrip = async (req, res) => {
-  const { destination, durationDays, budgetTier, interests } = req.body;
+  const { destination, durationDays, budgetTier, interests, source, transportMode } = req.body;
   const userId = req.user.id; // From auth middleware
 
   if (!destination || !durationDays || !budgetTier) {
@@ -245,15 +311,38 @@ exports.generateNewTrip = async (req, res) => {
   if (!process.env.GEMINI_API_KEY) {
     console.info('GEMINI_API_KEY not found. Using local mock generator...');
     const result = generateMockTrip(destination, duration, budgetTier, selectedInterests);
+    
+    let transitCost = 0;
+    const sourceQuery = source || '';
+    const transportPref = transportMode || 'Flight';
+    if (sourceQuery && destination) {
+      const sourceCoords = await geocodeAddress(sourceQuery);
+      const destCoords = await geocodeAddress(destination);
+      if (sourceCoords && destCoords) {
+        const dist = getHaversineDistance(sourceCoords, destCoords);
+        const rate = TRANSPORT_RATES[transportPref] || 0.12;
+        transitCost = Math.round(dist * rate);
+      }
+    } else {
+      transitCost = result.estimatedBudget.transport;
+    }
+
     const newTrip = new Trip({
       userId,
       destination,
       durationDays: duration,
       budgetTier,
       interests: selectedInterests,
+      source: sourceQuery,
+      transportMode: transportPref,
+      transitCostUSD: transitCost,
       itinerary: result.itinerary,
       hotels: result.hotels,
-      estimatedBudget: result.estimatedBudget,
+      estimatedBudget: {
+        ...result.estimatedBudget,
+        transport: transitCost,
+        total: transitCost + result.estimatedBudget.accommodation + result.estimatedBudget.food + result.estimatedBudget.activities
+      },
       packingList: result.packingList,
       climate: result.climate
     });
@@ -313,15 +402,37 @@ exports.generateNewTrip = async (req, res) => {
   try {
     const cleanResult = await callGeminiWithRetry(prompt);
 
+    let transitCost = 0;
+    const sourceQuery = source || '';
+    const transportPref = transportMode || 'Flight';
+    if (sourceQuery && destination) {
+      const sourceCoords = await geocodeAddress(sourceQuery);
+      const destCoords = await geocodeAddress(destination);
+      if (sourceCoords && destCoords) {
+        const dist = getHaversineDistance(sourceCoords, destCoords);
+        const rate = TRANSPORT_RATES[transportPref] || 0.12;
+        transitCost = Math.round(dist * rate);
+      }
+    } else {
+      transitCost = cleanResult.estimatedBudget?.transport || 0;
+    }
+
     const newTrip = new Trip({
       userId,
       destination,
       durationDays: duration,
       budgetTier,
       interests: selectedInterests,
+      source: sourceQuery,
+      transportMode: transportPref,
+      transitCostUSD: transitCost,
       itinerary: cleanResult.itinerary,
       hotels: cleanResult.hotels,
-      estimatedBudget: cleanResult.estimatedBudget,
+      estimatedBudget: {
+        ...cleanResult.estimatedBudget,
+        transport: transitCost,
+        total: transitCost + (cleanResult.estimatedBudget?.accommodation || 0) + (cleanResult.estimatedBudget?.food || 0) + (cleanResult.estimatedBudget?.activities || 0)
+      },
       packingList: cleanResult.packingList,
       climate: cleanResult.climate || {
         temperatureRange: "15°C - 22°C",
@@ -336,15 +447,38 @@ exports.generateNewTrip = async (req, res) => {
     console.error("Critical AI Generation Error, falling back to mock generator:", error);
     // Graceful fallback to mock data rather than server crash
     const result = generateMockTrip(destination, duration, budgetTier, selectedInterests);
+    
+    let transitCost = 0;
+    const sourceQuery = source || '';
+    const transportPref = transportMode || 'Flight';
+    if (sourceQuery && destination) {
+      const sourceCoords = await geocodeAddress(sourceQuery);
+      const destCoords = await geocodeAddress(destination);
+      if (sourceCoords && destCoords) {
+        const dist = getHaversineDistance(sourceCoords, destCoords);
+        const rate = TRANSPORT_RATES[transportPref] || 0.12;
+        transitCost = Math.round(dist * rate);
+      }
+    } else {
+      transitCost = result.estimatedBudget.transport;
+    }
+
     const newTrip = new Trip({
       userId,
       destination,
       durationDays: duration,
       budgetTier,
       interests: selectedInterests,
+      source: sourceQuery,
+      transportMode: transportPref,
+      transitCostUSD: transitCost,
       itinerary: result.itinerary,
       hotels: result.hotels,
-      estimatedBudget: result.estimatedBudget,
+      estimatedBudget: {
+        ...result.estimatedBudget,
+        transport: transitCost,
+        total: transitCost + result.estimatedBudget.accommodation + result.estimatedBudget.food + result.estimatedBudget.activities
+      },
       packingList: result.packingList,
       climate: result.climate
     });
@@ -403,9 +537,56 @@ exports.updateTrip = async (req, res) => {
     // Check what is being updated
     if (req.body.itinerary) trip.itinerary = req.body.itinerary;
     if (req.body.packingList) trip.packingList = req.body.packingList;
-    if (req.body.estimatedBudget) trip.estimatedBudget = req.body.estimatedBudget;
     if (req.body.hotels) trip.hotels = req.body.hotels;
     if (req.body.isPublic !== undefined) trip.isPublic = req.body.isPublic;
+
+    let recalculateBudget = false;
+    if (req.body.source !== undefined) {
+      trip.source = req.body.source;
+      recalculateBudget = true;
+    }
+    if (req.body.transportMode !== undefined) {
+      trip.transportMode = req.body.transportMode;
+      recalculateBudget = true;
+    }
+    if (req.body.destination !== undefined) {
+      trip.destination = req.body.destination;
+      recalculateBudget = true;
+    }
+
+    if (recalculateBudget) {
+      const sourceQuery = trip.source;
+      const destQuery = trip.destination;
+      if (sourceQuery && destQuery) {
+        const sourceCoords = await geocodeAddress(sourceQuery);
+        const destCoords = await geocodeAddress(destQuery);
+        if (sourceCoords && destCoords) {
+          const dist = getHaversineDistance(sourceCoords, destCoords);
+          const rate = TRANSPORT_RATES[trip.transportMode] || 0.12;
+          trip.transitCostUSD = Math.round(dist * rate);
+        } else {
+          trip.transitCostUSD = 0;
+        }
+      } else {
+        trip.transitCostUSD = 0;
+      }
+      trip.estimatedBudget.transport = trip.transitCostUSD;
+    }
+
+    if (req.body.estimatedBudget) {
+      trip.estimatedBudget = {
+        ...trip.estimatedBudget.toObject(),
+        ...req.body.estimatedBudget,
+        transport: recalculateBudget ? trip.transitCostUSD : (req.body.estimatedBudget.transport !== undefined ? req.body.estimatedBudget.transport : trip.estimatedBudget.transport)
+      };
+    }
+
+    // Always keep total in sync
+    trip.estimatedBudget.total = 
+      (trip.estimatedBudget.transport || 0) + 
+      (trip.estimatedBudget.accommodation || 0) + 
+      (trip.estimatedBudget.food || 0) + 
+      (trip.estimatedBudget.activities || 0);
 
     const savedTrip = await trip.save();
     return res.status(200).json(savedTrip);

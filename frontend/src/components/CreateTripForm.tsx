@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 
 interface CreateTripFormProps {
-  onSubmit: (data: { destination: string; durationDays: number; budgetTier: string; interests: string[] }) => void;
+  onSubmit: (data: {
+    destination: string;
+    durationDays: number;
+    budgetTier: string;
+    interests: string[];
+    source: string;
+    transportMode: string;
+  }) => void;
   isLoading: boolean;
 }
 
@@ -14,6 +21,8 @@ const INTEREST_OPTIONS = [
 
 export default function CreateTripForm({ onSubmit, isLoading }: CreateTripFormProps) {
   const [destination, setDestination] = useState('');
+  const [source, setSource] = useState('');
+  const [transportMode, setTransportMode] = useState('Flight');
   const [durationDays, setDurationDays] = useState(3);
   const [budgetTier, setBudgetTier] = useState('Medium');
   const [interests, setInterests] = useState<string[]>([]);
@@ -34,6 +43,8 @@ export default function CreateTripForm({ onSubmit, isLoading }: CreateTripFormPr
       durationDays,
       budgetTier,
       interests,
+      source,
+      transportMode,
     });
   };
 
@@ -58,6 +69,46 @@ export default function CreateTripForm({ onSubmit, isLoading }: CreateTripFormPr
             onChange={(e) => setDestination(e.target.value)}
             className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-300 text-sm"
           />
+        </div>
+
+        {/* Starting Location (Source) */}
+        <div>
+          <label htmlFor="source" className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+            Starting Location (Source)
+          </label>
+          <input
+            id="source"
+            type="text"
+            placeholder="e.g., London, New York, Delhi (Optional)"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-300 text-sm"
+          />
+        </div>
+
+        {/* Transport Preference */}
+        <div>
+          <label htmlFor="transportMode" className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+            Transport Preference
+          </label>
+          <div className="relative">
+            <select
+              id="transportMode"
+              value={transportMode}
+              onChange={(e) => setTransportMode(e.target.value)}
+              className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-300 text-sm appearance-none cursor-pointer"
+            >
+              <option value="Flight" className="bg-slate-900 text-slate-100">✈️ Flight</option>
+              <option value="Train" className="bg-slate-900 text-slate-100">🚆 Train</option>
+              <option value="Driving" className="bg-slate-900 text-slate-100">🚗 Driving</option>
+              <option value="Bus" className="bg-slate-900 text-slate-100">🚌 Bus</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {/* Duration */}

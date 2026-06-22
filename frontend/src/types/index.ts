@@ -45,6 +45,9 @@ export interface Trip {
   estimatedBudget: EstimatedBudget;
   packingList: PackingItem[];
   isPublic?: boolean;
+  source?: string;
+  transportMode?: string;
+  transitCostUSD?: number;
   climate?: {
     temperatureRange: string;
     rainfall: string;

@@ -2,11 +2,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { api } from '../../../utils/api';
 import { Trip } from '../../../types';
 import ItineraryCard from '../../../components/ItineraryCard';
 import PackingList from '../../../components/PackingList';
 import RedirectOverlay from '../../../components/RedirectOverlay';
+
+const Map = dynamic(() => import('../../../components/Map'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-80 rounded-2xl bg-slate-900 animate-pulse flex items-center justify-center text-slate-500 border border-white/5 my-6">
+      Loading interactive map...
+    </div>
+  )
+});
 
 export default function SharePage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -229,6 +239,21 @@ export default function SharePage({ params }: { params: { id: string } }) {
 
           {/* Right panel: Itinerary, Packing Checklist */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Route Map */}
+            <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <div>
+                <h3 className="text-lg font-bold text-white">Route Map & Transport</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Travel Route from <span className="text-slate-300 font-semibold">{trip.source || 'N/A'}</span> to <span className="text-slate-300 font-semibold">{trip.destination}</span> via <span className="text-slate-300 font-semibold">{trip.transportMode || 'Flight'}</span>
+                </p>
+              </div>
+              <Map
+                source={trip.source || ''}
+                destination={trip.destination}
+                transportMode={trip.transportMode || 'Flight'}
+              />
+            </div>
+
             <ItineraryCard trip={trip} isReadOnly={true} currency={currency} />
             <PackingList trip={trip} isReadOnly={true} />
           </div>
