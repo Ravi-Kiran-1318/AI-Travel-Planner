@@ -143,8 +143,8 @@ export default function LandingPage() {
         </div>
 
         {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mt-4">
-          <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl text-left hover:border-slate-800 transition duration-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 w-full max-w-5xl mt-4">
+          <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl text-left hover:border-slate-700 hover:bg-slate-900/60 transition duration-300">
             <span className="text-2xl">🗓️</span>
             <h3 className="text-base font-bold text-white mt-3 mb-1.5">Smart Day Timeline</h3>
             <p className="text-slate-400 text-xs leading-relaxed">
@@ -152,7 +152,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl text-left hover:border-slate-800 transition duration-300">
+          <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl text-left hover:border-slate-700 hover:bg-slate-900/60 transition duration-300">
             <span className="text-2xl">💵</span>
             <h3 className="text-base font-bold text-white mt-3 mb-1.5">Financial Cost Ledger</h3>
             <p className="text-slate-400 text-xs leading-relaxed">
@@ -160,11 +160,19 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl text-left hover:border-slate-800 transition duration-300">
+          <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl text-left hover:border-slate-700 hover:bg-slate-900/60 transition duration-300">
             <span className="text-2xl">⛈️</span>
             <h3 className="text-base font-bold text-white mt-3 mb-1.5">Weather Packing Assistant</h3>
             <p className="text-slate-400 text-xs leading-relaxed">
               Our unique feature cross-references local weather and selected destinations to output a dynamic, tickable gear checklist.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl text-left hover:border-indigo-500/40 hover:bg-indigo-950/20 transition duration-300">
+            <span className="text-2xl">🗺️</span>
+            <h3 className="text-base font-bold text-white mt-3 mb-1.5">Live Route Map</h3>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Visualize your journey on an interactive map. See your origin-to-destination route with real distance-based transport cost estimates.
             </p>
           </div>
         </div>
