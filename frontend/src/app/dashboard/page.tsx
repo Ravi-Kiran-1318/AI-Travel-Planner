@@ -8,6 +8,7 @@ import { Trip } from '../../types';
 import CreateTripForm from '../../components/CreateTripForm';
 import ItineraryCard from '../../components/ItineraryCard';
 import PackingList from '../../components/PackingList';
+import RedirectOverlay from '../../components/RedirectOverlay';
 
 function parseJwt(token: string) {
   try {
@@ -34,6 +35,8 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [username, setUsername] = useState('Traveler');
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectMessage, setRedirectMessage] = useState('Navigating...');
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -65,12 +68,16 @@ export default function DashboardPage() {
 
   const handleToggleShare = async (newValue: boolean) => {
     if (!selectedTrip) return;
+    setRedirectMessage('Updating Visibility Settings...');
+    setIsRedirecting(true);
     try {
       const updated = await api.trips.update(selectedTrip._id, { isPublic: newValue });
       handleUpdateTripState(updated);
     } catch (err: any) {
       console.error('Failed to toggle share state:', err);
       alert(err.message || 'Failed to update share settings.');
+    } finally {
+      setIsRedirecting(false);
     }
   };
 
@@ -90,6 +97,8 @@ export default function DashboardPage() {
     const decoded = parseJwt(token);
     if (decoded && decoded.username) {
       setUsername(decoded.username);
+      localStorage.setItem('savedUsername', decoded.username);
+      localStorage.setItem('lastActive', new Date().toLocaleString());
     }
     loadTrips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,17 +154,23 @@ export default function DashboardPage() {
 
   const handleRegenerateDay = async (dayNumber: number, instructions: string) => {
     if (!selectedTrip) return;
+    setRedirectMessage('AI is reconstructing your day plan...');
+    setIsRedirecting(true);
     try {
       const updatedTrip = await api.trips.regenerateDay(selectedTrip._id, dayNumber, instructions);
       handleUpdateTripState(updatedTrip);
     } catch (err: any) {
       console.error('Failed to regenerate day:', err);
       alert(err.message || 'Error occurred during day regeneration. Please retry.');
+    } finally {
+      setIsRedirecting(false);
     }
   };
 
   const handleDeleteTrip = async (id: string) => {
     if (!confirm('Are you sure you want to delete this trip itinerary?')) return;
+    setRedirectMessage('Deleting Itinerary...');
+    setIsRedirecting(true);
     try {
       await api.trips.delete(id);
       const updatedTrips = trips.filter((t) => t._id !== id);
@@ -166,11 +181,17 @@ export default function DashboardPage() {
     } catch (err: any) {
       console.error('Delete failed:', err);
       alert(err.message || 'Failed to delete the trip.');
+    } finally {
+      setIsRedirecting(false);
     }
   };
 
   const handleSignOut = () => {
+    setRedirectMessage('Signing Out of Enclave...');
+    setIsRedirecting(true);
     localStorage.removeItem('token');
+    localStorage.removeItem('savedUsername');
+    localStorage.removeItem('lastActive');
     router.push('/login');
   };
 
@@ -186,16 +207,26 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-between animate-pageFadeIn">
+      {isRedirecting && <RedirectOverlay message={redirectMessage} />}
+      
       <div>
         {/* Header */}
         <header className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-slate-900 pb-5 mb-8 gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 p-2.5 rounded-xl transition flex items-center justify-center no-print" title="Go to Home Page">
+            <button
+              onClick={() => {
+                setRedirectMessage('Loading Home...');
+                setIsRedirecting(true);
+                router.push('/');
+              }}
+              className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 p-2.5 rounded-xl transition flex items-center justify-center no-print"
+              title="Go to Home Page"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-            </Link>
+            </button>
             <div>
               <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
                 {getGreeting()}, {username}!

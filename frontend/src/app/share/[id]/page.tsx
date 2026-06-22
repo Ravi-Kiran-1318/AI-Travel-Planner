@@ -1,18 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '../../../utils/api';
 import { Trip } from '../../../types';
 import ItineraryCard from '../../../components/ItineraryCard';
 import PackingList from '../../../components/PackingList';
+import RedirectOverlay from '../../../components/RedirectOverlay';
 
 export default function SharePage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const tripId = params.id;
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currency, setCurrency] = useState<'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY'>('USD');
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectMessage, setRedirectMessage] = useState('Navigating...');
 
   const CURRENCIES = {
     USD: { symbol: '$', rate: 1.0 },
@@ -47,6 +51,12 @@ export default function SharePage({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleRedirect = (path: string, message: string = 'Navigating...') => {
+    setRedirectMessage(message);
+    setIsRedirecting(true);
+    router.push(path);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-slate-950 text-slate-100 gap-4">
@@ -61,32 +71,39 @@ export default function SharePage({ params }: { params: { id: string } }) {
   if (error || !trip) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-slate-950 text-slate-100 gap-6 p-4 text-center">
+        {isRedirecting && <RedirectOverlay message={redirectMessage} />}
         <p className="text-6xl">🔒</p>
         <h1 className="text-2xl font-bold text-slate-200">Access Denied / Private Trip</h1>
         <p className="text-sm text-slate-500 max-w-md">
           {error || 'This travel itinerary is private or has sharing disabled. Please contact the owner for access.'}
         </p>
-        <a
-          href="/login"
+        <button
+          onClick={() => handleRedirect('/login', 'Connecting...')}
           className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold px-6 py-3 rounded-2xl transition shadow-xl"
         >
           Sign In to Planner
-        </a>
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-between animate-pageFadeIn">
+      {isRedirecting && <RedirectOverlay message={redirectMessage} />}
+      
       <div>
         {/* Header */}
         <header className="max-w-7xl mx-auto flex justify-between items-center border-b border-slate-900 pb-5 mb-8">
           <div className="flex items-center gap-3">
-            <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 p-2.5 rounded-xl transition flex items-center justify-center no-print" title="Go to Home Page">
+            <button
+              onClick={() => handleRedirect('/', 'Loading Home...')}
+              className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 p-2.5 rounded-xl transition flex items-center justify-center no-print"
+              title="Go to Home Page"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-            </Link>
+            </button>
             <div>
               <h1 className="text-xl md:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
                 Shared Itinerary
@@ -94,12 +111,12 @@ export default function SharePage({ params }: { params: { id: string } }) {
               <p className="text-xs text-slate-500 mt-1">Shared vacation view • Read-only</p>
             </div>
           </div>
-          <Link
-            href="/register"
+          <button
+            onClick={() => handleRedirect('/register', 'Creating Planner...')}
             className="bg-indigo-600 hover:bg-indigo-500 transition text-white px-4 py-2.5 rounded-xl text-xs font-bold no-print"
           >
             Create Your Own Plan ✈️
-          </Link>
+          </button>
         </header>
 
         <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -29,9 +29,15 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
   const [editActivityCost, setEditActivityCost] = useState(0);
   const [editActivityTime, setEditActivityTime] = useState('Morning');
 
+  // Loading States for Actions
+  const [isAdding, setIsAdding] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isRemovingIndex, setIsRemovingIndex] = useState<{ day: number; index: number } | null>(null);
+
   // Add activity handler
   const handleAddActivity = async (dayNumber: number) => {
     if (!newActivityTitle.trim()) return;
+    setIsAdding(true);
 
     const newAct: Activity = {
       title: newActivityTitle.trim(),
@@ -88,11 +94,14 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
       }
     } catch (err) {
       console.error('Failed to add activity:', err);
+    } finally {
+      setIsAdding(false);
     }
   };
 
   // Remove activity handler
   const handleRemoveActivity = async (dayNumber: number, actIndex: number) => {
+    setIsRemovingIndex({ day: dayNumber, index: actIndex });
     const updatedItinerary = trip.itinerary.map((day) => {
       if (day.dayNumber === dayNumber) {
         const copyActs = [...day.activities];
@@ -135,6 +144,8 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
       }
     } catch (err) {
       console.error('Failed to remove activity:', err);
+    } finally {
+      setIsRemovingIndex(null);
     }
   };
 
@@ -168,6 +179,7 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
   // Save Editing Handler
   const handleSaveEdit = async () => {
     if (activeEditDay === null || activeEditIndex === null || !editActivityTitle.trim()) return;
+    setIsSavingEdit(true);
 
     const updatedItinerary = trip.itinerary.map((day) => {
       if (day.dayNumber === activeEditDay) {
@@ -218,6 +230,8 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
       }
     } catch (err) {
       console.error('Failed to save activity edit:', err);
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -359,10 +373,17 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => handleAddActivity(day.dayNumber)}
-                    disabled={!newActivityTitle.trim()}
-                    className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl transition duration-200"
+                    disabled={!newActivityTitle.trim() || isAdding}
+                    className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl transition duration-200 flex items-center gap-1.5"
                   >
-                    Save Activity
+                    {isAdding ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      'Save Activity'
+                    )}
                   </button>
                   <button
                     onClick={() => setActiveAddDay(null)}
@@ -426,10 +447,17 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={handleSaveEdit}
-                          disabled={!editActivityTitle.trim()}
-                          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl transition duration-200"
+                          disabled={!editActivityTitle.trim() || isSavingEdit}
+                          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl transition duration-200 flex items-center gap-1.5"
                         >
-                          Save Changes
+                          {isSavingEdit ? (
+                            <>
+                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            'Save Changes'
+                          )}
                         </button>
                         <button
                           onClick={() => {
@@ -485,12 +513,17 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
                           </button>
                           <button
                             onClick={() => handleRemoveActivity(day.dayNumber, index)}
-                            className="text-slate-500 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-colors duration-250"
+                            disabled={isRemovingIndex?.day === day.dayNumber && isRemovingIndex?.index === index}
+                            className="text-slate-500 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-colors duration-250 flex items-center justify-center min-w-[36px] min-h-[36px]"
                             title="Remove activity"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            {isRemovingIndex?.day === day.dayNumber && isRemovingIndex?.index === index ? (
+                              <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       )}

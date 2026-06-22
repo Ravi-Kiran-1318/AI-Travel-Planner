@@ -1,33 +1,49 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import RedirectOverlay from '../components/RedirectOverlay';
 
 export default function LandingPage() {
+  const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectMessage, setRedirectMessage] = useState('Navigating...');
+
+  const handleRedirect = (path: string, message: string = 'Navigating...') => {
+    setRedirectMessage(message);
+    setIsRedirecting(true);
+    router.push(path);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden animate-pageFadeIn">
+      {isRedirecting && <RedirectOverlay message={redirectMessage} />}
+      
       {/* Decorative gradients */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
       <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
 
       {/* Header */}
       <header className="max-w-7xl mx-auto w-full px-6 py-6 flex justify-between items-center border-b border-slate-900 z-10">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleRedirect('/', 'Loading Home...')}>
           <span className="text-2xl">✈️</span>
           <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
             Trao AI
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/login" className="text-slate-400 hover:text-white text-sm font-semibold transition">
+          <button 
+            onClick={() => handleRedirect('/login', 'Connecting to Session...')}
+            className="text-slate-400 hover:text-white text-sm font-semibold transition"
+          >
             Login
-          </Link>
-          <Link
-            href="/register"
+          </button>
+          <button
+            onClick={() => handleRedirect('/register', 'Preparing Portal...')}
             className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition shadow-lg shadow-indigo-600/20"
           >
             Sign Up
-          </Link>
+          </button>
         </div>
       </header>
 
@@ -44,18 +60,18 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-16">
-          <Link
-            href="/register"
+          <button
+            onClick={() => handleRedirect('/register', 'Creating Workspace...')}
             className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 hover:from-blue-600 hover:via-indigo-650 hover:to-purple-700 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl hover:shadow-indigo-500/20 transition duration-300 transform hover:-translate-y-0.5"
           >
             Start Planning For Free
-          </Link>
-          <Link
-            href="/login"
+          </button>
+          <button
+            onClick={() => handleRedirect('/login', 'Opening Travel Dashboard...')}
             className="bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-base px-8 py-4 rounded-2xl border border-slate-800 transition duration-300"
           >
             Sign In to Dashboard
-          </Link>
+          </button>
         </div>
 
         {/* Feature Cards Grid */}
