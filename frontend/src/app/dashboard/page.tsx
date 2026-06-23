@@ -12,6 +12,8 @@ import PackingList from '../../components/PackingList';
 import RedirectOverlay from '../../components/RedirectOverlay';
 import BudgetChart from '../../components/BudgetChart';
 import WeatherWidget from '../../components/WeatherWidget';
+import ImageGallery from '../../components/ImageGallery';
+import ExpenseTracker from '../../components/ExpenseTracker';
 import TripCopilot from '../../components/TripCopilot';
 
 const Map = dynamic(() => import('../../components/Map'), {
@@ -79,6 +81,8 @@ function parseJwt(token: string) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  type TabType = 'overview' | 'itinerary' | 'packing' | 'expenses' | 'gallery';
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
@@ -295,6 +299,8 @@ export default function DashboardPage() {
     <div className="min-h-screen relative bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-between animate-pageFadeIn">
       {isRedirecting && <RedirectOverlay message={redirectMessage} />}
       
+
+      
       <div>
         {/* Header */}
         <header className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-slate-900 pb-5 mb-8 gap-4">
@@ -399,177 +405,48 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-
-            {/* Financial cost ledger */}
-            {selectedTrip && !showCreateForm && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                <div className="flex justify-between items-center mb-1">
-                  <h3 className="text-lg font-bold text-white">Financial Cost Ledger</h3>
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value as any)}
-                    className="bg-slate-950 border border-slate-800 text-slate-300 rounded-lg text-xs py-1.5 px-2 outline-none focus:border-indigo-500 font-medium"
-                  >
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="GBP">GBP (£)</option>
-                    <option value="INR">INR (₹)</option>
-                    <option value="JPY">JPY (¥)</option>
-                  </select>
+          
+              {/* Copilot in left panel */}
+              {selectedTrip && !showCreateForm && (
+                <div className="sticky top-6">
+                  <TripCopilot trip={selectedTrip} currency={currency} />
                 </div>
-                <div className="space-y-3.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Transport & Transit:</span>
-                    <span className="font-mono font-semibold text-slate-200">
-                      {formatAmount(selectedTrip.estimatedBudget?.transport || 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Lodging & Hotels:</span>
-                    <span className="font-mono font-semibold text-slate-200">
-                      {formatAmount(selectedTrip.estimatedBudget?.accommodation || 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Culinary & Food:</span>
-                    <span className="font-mono font-semibold text-slate-200">
-                      {formatAmount(selectedTrip.estimatedBudget?.food || 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Activities Booking:</span>
-                    <span className="font-mono font-semibold text-slate-200">
-                      {formatAmount(selectedTrip.estimatedBudget?.activities || 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm border-t border-slate-800 pt-4 text-white font-bold">
-                    <span className="text-indigo-400">Grand Estimated Total:</span>
-                    <span className="font-mono text-indigo-400 text-lg">
-                      {formatAmount(selectedTrip.estimatedBudget?.total || 0)}
-                    </span>
-                  </div>
-                </div>
+              )}
+            </div>
 
-                {/* Budget Visual Charts */}
-                <div className="border-t border-slate-800 pt-4">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Budget Breakdown</p>
-                  <BudgetChart budget={selectedTrip.estimatedBudget} currency={currency} />
-                </div>
-              </div>
-            )}
 
-            {/* Share settings */}
-            {selectedTrip && !showCreateForm && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                <h3 className="text-lg font-bold text-white">Share Itinerary</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-400">Enable Public Share Link</span>
-                  <button
-                    onClick={() => handleToggleShare(!selectedTrip.isPublic)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      selectedTrip.isPublic ? 'bg-indigo-600' : 'bg-slate-800'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        selectedTrip.isPublic ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-                {selectedTrip.isPublic && (
-                  <div className="space-y-2 pt-2 border-t border-slate-850">
-                    <p className="text-xs text-slate-500">Anyone with this link can view this plan read-only:</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        readOnly
-                        value={shareUrl}
-                        className="flex-1 bg-slate-950/80 border border-slate-850 text-xs rounded-xl px-3 py-2 text-slate-400 focus:outline-none"
-                      />
-                      <button
-                        onClick={handleCopyLink}
-                        className="bg-indigo-950/50 hover:bg-indigo-900 border border-indigo-900 text-indigo-400 px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition"
-                      >
-                        {copied ? 'Copied! ✅' : 'Copy'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Climate Outlook */}
-            {selectedTrip && !showCreateForm && selectedTrip.climate && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                <h3 className="text-lg font-bold text-white">Climate Outlook</h3>
-                <div className="space-y-2.5 text-sm">
-                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850 flex items-center justify-between gap-4">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Avg Temp</span>
-                    <span className="font-semibold text-slate-200 text-right">{selectedTrip.climate.temperatureRange || 'N/A'}</span>
-                  </div>
-                  <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850 flex items-center justify-between gap-4">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Rainfall</span>
-                    <span className="font-semibold text-slate-200 text-right truncate max-w-[150px]" title={selectedTrip.climate.rainfall || 'N/A'}>
-                      {selectedTrip.climate.rainfall || 'N/A'}
-                    </span>
-                  </div>
-                </div>
-                {selectedTrip.climate.weatherSummary && (
-                  <p className="text-xs text-slate-400 bg-slate-950/20 border border-slate-850/50 p-3 rounded-xl leading-relaxed">
-                    ☀️ {selectedTrip.climate.weatherSummary}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Live Weather Forecast Widget */}
-            {selectedTrip && !showCreateForm && (
-              <WeatherWidget destination={selectedTrip.destination} />
-            )}
-
-            {/* Hotel suggestions */}
-            {selectedTrip && !showCreateForm && selectedTrip.hotels && selectedTrip.hotels.length > 0 && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                <h3 className="text-lg font-bold text-white">Hotel Recommendations</h3>
-                <div className="space-y-4">
-                  {selectedTrip.hotels.map((hotel, idx) => (
-                    <a 
-                      key={idx} 
-                      href={`https://www.google.com/search?q=${encodeURIComponent(hotel.name + ' hotel ' + selectedTrip.destination)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block bg-slate-950/40 border border-slate-850 p-4 rounded-2xl relative overflow-hidden hover:border-indigo-500/50 hover:bg-slate-900/60 transition-all duration-200 group"
-                    >
-                      <div className="flex justify-between items-start gap-2">
-                        <span className="font-semibold text-sm text-slate-200 leading-snug group-hover:text-indigo-300 transition-colors">
-                          {hotel.name} <span className="inline-block ml-1 opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
-                        </span>
-                        {hotel.rating && (
-                          <span className="text-xs bg-indigo-950/50 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-900/30 shrink-0 font-medium">
-                            ★ {hotel.rating}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
-                        <span>{hotel.tier || 'Suggested'}</span>
-                        {hotel.estimatedCostNightUSD && (
-                          <span className="text-slate-400 font-mono font-semibold">
-                            {formatAmount(hotel.estimatedCostNightUSD)}/night
-                          </span>
-                        )}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right panel: Active Trip content */}
-          <div className="lg:col-span-2 space-y-8">
+          {/* Right panel: Active Trip content & Tabs */}
+          <div className="lg:col-span-2 space-y-6">
             {selectedTrip && !showCreateForm ? (
               <>
+                {/* Tab Navigation */}
+                <div className="flex overflow-x-auto gap-2 bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-2 rounded-2xl hide-scrollbar">
+                  {[
+                    { id: 'overview', label: 'Overview', icon: '🗺️' },
+                    { id: 'itinerary', label: 'Itinerary', icon: '📅' },
+                    { id: 'packing', label: 'Packing', icon: '🧳' },
+                    { id: 'expenses', label: 'Expenses', icon: '💰' },
+                    { id: 'gallery', label: 'Gallery', icon: '📸' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as TabType)}
+                      className={`whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                        activeTab === tab.id 
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <span>{tab.icon}</span>
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* OVERVIEW TAB */}
+                {activeTab === 'overview' && (
+                  <div className="space-y-6 animate-fadeIn">
+                    <WeatherWidget destination={selectedTrip.destination} />
                 {/* Route Map & Transit Settings */}
                 <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -695,15 +572,214 @@ export default function DashboardPage() {
                   />
                 </div>
 
-                {/* AI Trip Co-pilot (Inline after Map) */}
-                <TripCopilot trip={selectedTrip} currency={currency} />
 
-                <ItineraryCard
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Financial cost ledger */}
+                      {selectedTrip && !showCreateForm && (
+                        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                          <div className="flex justify-between items-center mb-1">
+                            <h3 className="text-lg font-bold text-white">Financial Cost Ledger</h3>
+                            <select
+                              value={currency}
+                              onChange={(e) => setCurrency(e.target.value as any)}
+                              className="bg-slate-950 border border-slate-800 text-slate-300 rounded-lg text-xs py-1.5 px-2 outline-none focus:border-indigo-500 font-medium"
+                            >
+                              <option value="USD">USD ($)</option>
+                              <option value="EUR">EUR (€)</option>
+                              <option value="GBP">GBP (£)</option>
+                              <option value="INR">INR (₹)</option>
+                              <option value="JPY">JPY (¥)</option>
+                            </select>
+                          </div>
+                          <div className="space-y-3.5">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-400">Transport & Transit:</span>
+                              <span className="font-mono font-semibold text-slate-200">
+                                {formatAmount(selectedTrip.estimatedBudget?.transport || 0)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-400">Lodging & Hotels:</span>
+                              <span className="font-mono font-semibold text-slate-200">
+                                {formatAmount(selectedTrip.estimatedBudget?.accommodation || 0)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-400">Culinary & Food:</span>
+                              <span className="font-mono font-semibold text-slate-200">
+                                {formatAmount(selectedTrip.estimatedBudget?.food || 0)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-400">Activities Booking:</span>
+                              <span className="font-mono font-semibold text-slate-200">
+                                {formatAmount(selectedTrip.estimatedBudget?.activities || 0)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm border-t border-slate-800 pt-4 text-white font-bold">
+                              <span className="text-indigo-400">Grand Estimated Total:</span>
+                              <span className="font-mono text-indigo-400 text-lg">
+                                {formatAmount(selectedTrip.estimatedBudget?.total || 0)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Budget Visual Charts */}
+                          <div className="border-t border-slate-800 pt-4">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Budget Breakdown</p>
+                            <BudgetChart budget={selectedTrip.estimatedBudget} currency={currency} />
+                          </div>
+                        </div>
+                      )}
+
+
+                      {/* Climate Outlook */}
+                      {selectedTrip && !showCreateForm && selectedTrip.climate && (
+                        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                          <h3 className="text-lg font-bold text-white">Climate Outlook</h3>
+                          <div className="space-y-2.5 text-sm">
+                            <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850 flex items-center justify-between gap-4">
+                              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Avg Temp</span>
+                              <span className="font-semibold text-slate-200 text-right">{selectedTrip.climate.temperatureRange || 'N/A'}</span>
+                            </div>
+                            <div className="bg-slate-950/40 p-3.5 rounded-2xl border border-slate-850 flex items-center justify-between gap-4">
+                              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Rainfall</span>
+                              <span className="font-semibold text-slate-200 text-right truncate max-w-[150px]" title={selectedTrip.climate.rainfall || 'N/A'}>
+                                {selectedTrip.climate.rainfall || 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                          {selectedTrip.climate.weatherSummary && (
+                            <p className="text-xs text-slate-400 bg-slate-950/20 border border-slate-850/50 p-3 rounded-xl leading-relaxed">
+                              ☀️ {selectedTrip.climate.weatherSummary}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+{/* Hotel suggestions */}
+                      {selectedTrip && !showCreateForm && selectedTrip.hotels && selectedTrip.hotels.length > 0 && (
+                        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                          <h3 className="text-lg font-bold text-white">Hotel Recommendations</h3>
+                          <div className="space-y-4">
+                            {selectedTrip.hotels.map((hotel, idx) => (
+                              <a 
+                                key={idx} 
+                                href={`https://www.google.com/search?q=${encodeURIComponent(hotel.name + ' hotel ' + selectedTrip.destination)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block bg-slate-950/40 border border-slate-850 p-4 rounded-2xl relative overflow-hidden hover:border-indigo-500/50 hover:bg-slate-900/60 transition-all duration-200 group"
+                              >
+                                <div className="flex justify-between items-start gap-2">
+                                            <span className="font-semibold text-sm text-slate-200 leading-snug group-hover:text-indigo-300 transition-colors">
+                                              {hotel.name} <span className="inline-block ml-1 opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
+                                            </span>
+                                            {hotel.rating && (
+                                              <span className="text-xs bg-indigo-950/50 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-900/30 shrink-0 font-medium">
+                                                ★ {hotel.rating}
+                                              </span>
+                                            )}
+                                </div>
+                                <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
+                                            <span>{hotel.tier || 'Suggested'}</span>
+                                            {hotel.estimatedCostNightUSD && (
+                                              <span className="text-slate-400 font-mono font-semibold">
+                                                {formatAmount(hotel.estimatedCostNightUSD)}/night
+                                              </span>
+                                            )}
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+          
+                      {/* Share settings */}
+                      {selectedTrip && !showCreateForm && (
+                        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                          <h3 className="text-lg font-bold text-white">Share Itinerary</h3>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-400">Enable Public Share Link</span>
+                            <button
+                              onClick={() => handleToggleShare(!selectedTrip.isPublic)}
+                              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                selectedTrip.isPublic ? 'bg-indigo-600' : 'bg-slate-800'
+                              }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                            selectedTrip.isPublic ? 'translate-x-5' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                          </div>
+                          {selectedTrip.isPublic && (
+                            <div className="space-y-2 pt-2 border-t border-slate-850">
+                              <p className="text-xs text-slate-500">Anyone with this link can view this plan read-only:</p>
+                              <div className="flex gap-2">
+                                <input
+                                            type="text"
+                                            readOnly
+                                            value={shareUrl}
+                                            className="flex-1 bg-slate-950/80 border border-slate-850 text-xs rounded-xl px-3 py-2 text-slate-400 focus:outline-none"
+                                />
+                                <button
+                                            onClick={handleCopyLink}
+                                            className="bg-indigo-950/50 hover:bg-indigo-900 border border-indigo-900 text-indigo-400 px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition"
+                                >
+                                            {copied ? 'Copied! ✅' : 'Copy'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+
+                    </div>
+                  </div>
+                )}
+
+                {/* ITINERARY TAB */}
+                {activeTab === 'itinerary' && (
+                  <div className="space-y-6 animate-fadeIn">
+                  <ItineraryCard
                   trip={selectedTrip}
                   onUpdateTrip={handleUpdateTripState}
                   onRegenerateDay={handleRegenerateDay}
                   currency={currency}
                 />
+
+                  </div>
+                )}
+
+                {/* PACKING TAB */}
+                {activeTab === 'packing' && (
+                  <div className="space-y-6 animate-fadeIn">
+                    <PackingList trip={selectedTrip} onUpdateTrip={handleUpdateTripState} />
+                  </div>
+                )}
+
+                {/* EXPENSES TAB */}
+                {activeTab === 'expenses' && (
+                  <div className="space-y-6 animate-fadeIn">
+                    <ExpenseTracker 
+                      tripId={selectedTrip._id} 
+                      currency={currency} 
+                      estimatedBudget={selectedTrip.estimatedBudget} 
+                    />
+                  </div>
+                )}
+
+                {/* GALLERY TAB */}
+                {activeTab === 'gallery' && (
+                  <div className="space-y-6 animate-fadeIn">
+                    <ImageGallery destination={selectedTrip.destination} />
+                  </div>
+                )}
               </>
             ) : (
               !showCreateForm && (
@@ -731,20 +807,13 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          
-          {/* Full-width section for Packing List */}
-          {selectedTrip && !showCreateForm && (
-            <div className="lg:col-span-3">
-              <PackingList trip={selectedTrip} onUpdateTrip={handleUpdateTripState} />
-            </div>
-          )}
         </main>
-      </div>
 
-      {/* Footer */}
-      <footer className="max-w-7xl mx-auto w-full text-center text-slate-700 text-xs py-8 border-t border-slate-900 mt-12">
-        <p>Trao AI Travel Planner &copy; {new Date().getFullYear()} • Dynamic Itineraries & Weather packing assistant</p>
-      </footer>
+        {/* Footer */}
+        <footer className="max-w-7xl mx-auto w-full text-center text-slate-700 text-xs py-8 border-t border-slate-900 mt-12">
+          <p>Trao AI Travel Planner &copy; {new Date().getFullYear()} • Dynamic Itineraries & Weather packing assistant</p>
+        </footer>
+      </div>
     </div>
   );
 }

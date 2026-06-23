@@ -19,6 +19,7 @@ app.use(express.json());
 // Main route mappings
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/trips', require('./routes/tripRoutes'));
+app.use('/api/images', require('./routes/imageRoutes'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -179,12 +179,12 @@ export default function PackingList({ trip, onUpdateTrip, isReadOnly = false }: 
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="flex flex-col gap-6">
         {CATEGORIES.map((category) => {
           const categoryItems = trip.packingList.filter((item) => item.category === category);
 
           return (
-            <div key={category} className="bg-slate-950/40 border border-slate-800 rounded-2xl p-5 flex flex-col h-full shadow-lg">
+            <div key={category} className="bg-slate-950/40 border border-slate-800 rounded-2xl p-5 shadow-lg w-full">
               <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
                 <h4 className="text-sm font-bold uppercase tracking-wider text-slate-300">
                   {category}
@@ -194,9 +194,9 @@ export default function PackingList({ trip, onUpdateTrip, isReadOnly = false }: 
                 </span>
               </div>
               
-              <div className="flex-1 space-y-2">
+              <div className={categoryItems.length === 0 ? "flex items-center justify-center py-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"}>
                 {categoryItems.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic text-center py-4">No items yet</p>
+                  <p className="text-xs text-slate-500 italic">No items yet</p>
                 ) : (
                   categoryItems.map((item) => (
                     <div
@@ -235,7 +235,7 @@ export default function PackingList({ trip, onUpdateTrip, isReadOnly = false }: 
         })}
 
         {trip.packingList.length === 0 && (
-          <p className="text-slate-500 text-sm text-center">No packing recommendations available.</p>
+          <p className="text-slate-500 text-sm text-center bg-slate-950/20 p-8 rounded-2xl border border-slate-800 border-dashed">No packing recommendations available.</p>
         )}
       </div>
     </div>

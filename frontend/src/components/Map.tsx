@@ -382,51 +382,70 @@ export default function MapComponent({
   const destIcon = createCustomIcon('#ef4444', '🏁');
 
   return (
-    <div className="flex flex-col rounded-2xl overflow-hidden border border-slate-800 bg-slate-900/40 shadow-xl w-full my-4 no-print">
-      {/* Map Container View */}
-      <div className="relative w-full h-80 z-0">
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            .leaflet-container {
-              background: #0f172a;
-            }
-          `
-        }} />
-        
-        {loading && (
-          <div className="absolute inset-0 z-[1000] bg-slate-950/70 backdrop-blur-sm flex flex-col justify-center items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
-            <span className="text-sm font-semibold text-slate-300">Geocoding route coordinates...</span>
+    <div className="flex flex-col space-y-2">
+      {/* Brickly-style Stats Header Bar */}
+      {!loading && routeStats && destCoords && (
+        <div className="flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold">
+          <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+            <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Distance</span>
+            {routeStats.distance}
           </div>
-        )}
+          <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 hidden sm:block"></div>
+          <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+            <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Est. Time</span>
+            ~{routeStats.duration}
+          </div>
+          <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 hidden sm:block"></div>
+          <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+            <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Mode</span>
+            {transportEmoji} {transportMode}
+          </div>
+        </div>
+      )}
 
-        {destCoords ? (
+      <div className="h-[300px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative z-0 group">
+        <div className="absolute top-4 right-4 z-[400] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-xl flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Live Preview</span>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="w-full h-full flex flex-col justify-center items-center text-slate-400 bg-slate-50 dark:bg-slate-900/20">
+            <svg className="w-10 h-10 mb-3 text-slate-600 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="text-sm font-medium animate-pulse text-slate-500 dark:text-slate-400">Loading route map...</span>
+          </div>
+        ) : destCoords ? (
           <MapContainer
-            center={defaultCenter}
-            zoom={defaultZoom}
-            scrollWheelZoom={false}
+            center={sourceCoords ? undefined : [destCoords[0], destCoords[1]]}
+            zoom={sourceCoords ? undefined : 12}
             className="w-full h-full"
+            zoomControl={false}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
             
             {sourceCoords && (
-              <Marker position={sourceCoords} icon={sourceIcon}>
-                <Popup>
-                  <div className="text-xs font-semibold text-slate-900">
-                    <p className="font-bold">Source:</p>
+              <Marker position={[sourceCoords[0], sourceCoords[1]]} icon={sourceIcon}>
+                <Popup className="custom-popup">
+                  <div className="font-semibold text-slate-800">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Origin</p>
                     <p>{source}</p>
                   </div>
                 </Popup>
               </Marker>
             )}
 
-            <Marker position={destCoords} icon={destIcon}>
-              <Popup>
-                <div className="text-xs font-semibold text-slate-900">
-                  <p className="font-bold">Destination:</p>
+            <Marker position={[destCoords[0], destCoords[1]]} icon={destIcon}>
+              <Popup className="custom-popup">
+                <div className="font-semibold text-slate-800">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Destination</p>
                   <p>{destination}</p>
                 </div>
               </Popup>
@@ -435,8 +454,8 @@ export default function MapComponent({
             {routeCoords && (
               <Polyline
                 positions={routeCoords}
-                color="#ff5e00"
-                weight={3}
+                color="#3b82f6"
+                weight={4}
                 opacity={0.8}
               />
             )}
@@ -444,52 +463,14 @@ export default function MapComponent({
             <FitBounds points={markers} />
           </MapContainer>
         ) : (
-          <div className="w-full h-full flex flex-col justify-center items-center text-slate-400 bg-slate-900/20">
-            <svg className="w-12 h-12 mb-3 text-slate-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <div className="w-full h-full flex flex-col justify-center items-center text-slate-400 bg-slate-50 dark:bg-slate-900/20">
+            <svg className="w-12 h-12 mb-3 text-slate-300 dark:text-slate-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
             <span className="text-sm font-medium text-slate-500">Enter destination to preview route map</span>
           </div>
         )}
       </div>
-
-      {/* Stats Footer Bar */}
-      {!loading && routeStats && destCoords && (
-        <div className="p-4 bg-slate-950/80 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
-          <div className="flex items-center gap-2 text-slate-400">
-            <span className="text-blue-400 bg-blue-950/50 border border-blue-800/30 px-2.5 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider">
-              Distance
-            </span>
-            <span className="font-semibold text-slate-200 text-sm">
-              {routeStats.distance}
-            </span>
-          </div>
-          
-          <div className="hidden sm:block w-px h-6 bg-slate-800"></div>
-          
-          <div className="flex items-center gap-2 text-slate-400">
-            <span className="text-orange-400 bg-orange-950/50 border border-orange-800/30 px-2.5 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider">
-              Est. Travel Time
-            </span>
-            <span className="font-semibold text-slate-200 text-sm">
-              {routeStats.duration}
-            </span>
-          </div>
-          
-          <div className="hidden sm:block w-px h-6 bg-slate-800"></div>
-
-          <div className="flex items-center gap-2 text-slate-400">
-            <span className="text-indigo-400 bg-indigo-950/50 border border-indigo-800/30 px-2.5 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider">
-              Transport Mode
-            </span>
-            <span className="font-semibold text-slate-200 text-sm flex items-center gap-1.5">
-              <span>{transportEmoji}</span>
-              <span>{transportMode}</span>
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-
