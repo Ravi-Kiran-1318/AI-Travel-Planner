@@ -179,50 +179,56 @@ export default function PackingList({ trip, onUpdateTrip, isReadOnly = false }: 
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {CATEGORIES.map((category) => {
           const categoryItems = trip.packingList.filter((item) => item.category === category);
-          if (categoryItems.length === 0) return null;
 
           return (
-            <div key={category} className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                {category}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {categoryItems.map((item) => (
-                  <div
-                    key={item._id}
-                    onClick={() => !isReadOnly && handleToggleItem(item._id!)}
-                    className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition duration-300 w-full ${
-                      !isReadOnly ? 'hover:bg-slate-800/40 cursor-pointer select-none' : 'select-none'
-                    } ${
-                      item.isPacked
-                        ? 'bg-slate-950/20 border-slate-900 text-slate-500'
-                        : 'bg-slate-950/40 border-slate-800 text-slate-200'
-                    }`}
-                  >
+            <div key={category} className="bg-slate-950/40 border border-slate-800 rounded-2xl p-5 flex flex-col h-full shadow-lg">
+              <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-slate-300">
+                  {category}
+                </h4>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-medium ${getCategoryColor(category)}`}>
+                  {categoryItems.length} items
+                </span>
+              </div>
+              
+              <div className="flex-1 space-y-2">
+                {categoryItems.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic text-center py-4">No items yet</p>
+                ) : (
+                  categoryItems.map((item) => (
                     <div
-                      className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-300 ${
+                      key={item._id}
+                      onClick={() => !isReadOnly && handleToggleItem(item._id!)}
+                      className={`flex items-start gap-3 p-2.5 rounded-xl border text-left transition duration-300 w-full ${
+                        !isReadOnly ? 'hover:bg-slate-800/60 cursor-pointer select-none' : 'select-none'
+                      } ${
                         item.isPacked
-                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                          : 'border-slate-700 bg-slate-900'
+                          ? 'bg-slate-900/30 border-slate-800/50 text-slate-500'
+                          : 'bg-slate-800/20 border-slate-700/50 text-slate-200'
                       }`}
                     >
-                      {item.isPacked && (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
+                      <div
+                        className={`mt-0.5 shrink-0 w-4 h-4 rounded-[4px] border flex items-center justify-center transition-all duration-300 ${
+                          item.isPacked
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                            : 'border-slate-600 bg-slate-900/50'
+                        }`}
+                      >
+                        {item.isPacked && (
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`text-xs leading-snug flex-1 ${item.isPacked ? 'line-through' : ''}`}>
+                        {item.item}
+                      </span>
                     </div>
-                    <span className={`text-sm flex-1 ${item.isPacked ? 'line-through' : ''}`}>
-                      {item.item}
-                    </span>
-                    <span className={`ml-auto text-[10px] px-2 py-0.5 border rounded-full font-mono font-medium shrink-0 ${getCategoryColor(category)}`}>
-                      {category}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           );

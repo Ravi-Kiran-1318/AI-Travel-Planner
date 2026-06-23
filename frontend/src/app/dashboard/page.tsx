@@ -704,7 +704,6 @@ export default function DashboardPage() {
                   onRegenerateDay={handleRegenerateDay}
                   currency={currency}
                 />
-                <PackingList trip={selectedTrip} onUpdateTrip={handleUpdateTripState} />
               </>
             ) : (
               !showCreateForm && (
@@ -732,6 +731,13 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+          
+          {/* Full-width section for Packing List */}
+          {selectedTrip && !showCreateForm && (
+            <div className="lg:col-span-3">
+              <PackingList trip={selectedTrip} onUpdateTrip={handleUpdateTripState} />
+            </div>
+          )}
         </main>
       </div>
 

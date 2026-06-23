@@ -549,6 +549,18 @@ export default function ItineraryCard({ trip, onUpdateTrip, onRegenerateDay, isR
             )}
           </div>
         ))}
+
+        {/* Trip Completed Marker */}
+        <div className="relative pl-10 md:pl-12 pt-2 flex items-center group">
+          <div className="absolute left-0 w-7 h-7 bg-slate-900 border-2 border-emerald-500 rounded-full flex items-center justify-center text-xs font-bold shadow-[0_0_15px_rgba(16,185,129,0.2)] z-10">
+            🏁
+          </div>
+          <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-xl px-4 py-2.5 flex items-center gap-3 w-full sm:w-auto mt-1">
+            <span className="text-emerald-400 font-bold text-sm">Trip Finished!</span>
+            <div className="w-px h-4 bg-emerald-900/50 hidden sm:block"></div>
+            <span className="text-slate-400 text-xs">Safe travels & have a great time! ✨</span>
+          </div>
+        </div>
       </div>
     </div>
   );
