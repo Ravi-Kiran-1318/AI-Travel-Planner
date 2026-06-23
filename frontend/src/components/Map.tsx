@@ -408,8 +408,8 @@ export default function MapComponent({
             className="w-full h-full"
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
             
             {sourceCoords && (
@@ -436,9 +436,8 @@ export default function MapComponent({
               <Polyline
                 positions={routeCoords}
                 color="#ff5e00"
-                weight={isFlight ? 2 : 3}
+                weight={3}
                 opacity={0.8}
-                dashArray={isFlight ? '6, 8' : undefined}
               />
             )}
 

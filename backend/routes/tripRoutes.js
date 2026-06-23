@@ -19,4 +19,7 @@ router.delete('/:id', tripController.deleteTrip);
 // Specific day regeneration endpoint
 router.post('/:id/regenerate-day', tripController.regenerateDay);
 
+// AI Trip Co-pilot chat endpoint
+router.post('/:id/chat', tripController.chatWithCopilot);
+
 module.exports = router;

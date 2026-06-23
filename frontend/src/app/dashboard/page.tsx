@@ -10,6 +10,9 @@ import CreateTripForm from '../../components/CreateTripForm';
 import ItineraryCard from '../../components/ItineraryCard';
 import PackingList from '../../components/PackingList';
 import RedirectOverlay from '../../components/RedirectOverlay';
+import BudgetChart from '../../components/BudgetChart';
+import WeatherWidget from '../../components/WeatherWidget';
+import TripCopilot from '../../components/TripCopilot';
 
 const Map = dynamic(() => import('../../components/Map'), {
   ssr: false,
@@ -289,7 +292,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-between animate-pageFadeIn">
+    <div className="min-h-screen relative bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-between animate-pageFadeIn">
       {isRedirecting && <RedirectOverlay message={redirectMessage} />}
       
       <div>
@@ -446,6 +449,12 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* Budget Visual Charts */}
+                <div className="border-t border-slate-800 pt-4">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Budget Breakdown</p>
+                  <BudgetChart budget={selectedTrip.estimatedBudget} currency={currency} />
+                </div>
               </div>
             )}
 
@@ -512,6 +521,11 @@ export default function DashboardPage() {
                   </p>
                 )}
               </div>
+            )}
+
+            {/* Live Weather Forecast Widget */}
+            {selectedTrip && !showCreateForm && (
+              <WeatherWidget destination={selectedTrip.destination} />
             )}
 
             {/* Hotel suggestions */}
@@ -672,6 +686,9 @@ export default function DashboardPage() {
                     destinationCoords={selectedTrip.destinationCoords}
                   />
                 </div>
+
+                {/* AI Trip Co-pilot (Inline after Map) */}
+                <TripCopilot trip={selectedTrip} currency={currency} />
 
                 <ItineraryCard
                   trip={selectedTrip}

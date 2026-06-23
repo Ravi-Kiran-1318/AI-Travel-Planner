@@ -38,6 +38,13 @@ export default function LoginPage() {
       }
       setLastActive(localStorage.getItem('lastActive') || new Date().toLocaleString());
     }
+
+    // Intercept back navigation
+    const handlePopState = () => {
+      window.location.href = '/';
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const handleClearSession = () => {
@@ -74,6 +81,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6 relative overflow-hidden animate-pageFadeIn">
       {isRedirecting && <RedirectOverlay message={redirectMessage} />}
       
+      {/* Home button */}
+      <button 
+        onClick={() => handleRedirect('/', 'Loading Home...')}
+        className="absolute top-6 left-6 sm:top-8 sm:left-8 z-50 flex items-center gap-2 text-slate-400 hover:text-white transition bg-slate-900/80 hover:bg-slate-800 px-4 py-2 rounded-full border border-slate-800 shadow-lg backdrop-blur-md"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        <span className="text-sm font-medium">Back to Home</span>
+      </button>
+
       {/* Background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 

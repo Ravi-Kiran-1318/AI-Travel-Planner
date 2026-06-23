@@ -231,8 +231,7 @@ function generateMockTrip(destination, durationDays, budgetTier, interests) {
   // Climate dress mapping
   packingList.push(climateWear[budgetTier === 'High' ? 'High' : budgetTier === 'Medium' ? 'Medium' : 'Low']);
 
-  const finalPackingList = packingList.map((p, idx) => ({
-    _id: `mock-pack-${idx}`,
+  const finalPackingList = packingList.map((p) => ({
     item: p.item,
     category: p.category,
     isPacked: false
@@ -795,5 +794,177 @@ exports.regenerateDay = async (req, res) => {
   } catch (error) {
     console.error('Regenerate day error:', error);
     return res.status(500).json({ message: 'Error regenerating the itinerary day.' });
+  }
+};
+
+// AI Trip Co-pilot: context-aware chat using full trip data
+exports.chatWithCopilot = async (req, res) => {
+  const { message, history = [] } = req.body;
+  const tripId = req.params.id;
+
+  if (!message) {
+    return res.status(400).json({ message: 'Message is required.' });
+  }
+
+  try {
+    const trip = await Trip.findOne({ _id: tripId, userId: req.user.id });
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found or access denied.' });
+    }
+
+    // Build a concise trip context summary for the AI
+    const tripContext = `
+TRIP CONTEXT:
+- Destination: ${trip.destination}
+- Duration: ${trip.durationDays} days
+- Budget Tier: ${trip.budgetTier}
+- Interests: ${trip.interests.join(', ') || 'General'}
+- Transport Mode: ${trip.transportMode || 'Flight'}
+- Origin: ${trip.source || 'Not specified'}
+- Total Budget: $${trip.estimatedBudget?.total || 0} USD
+  (Transport: $${trip.estimatedBudget?.transport || 0}, Accommodation: $${trip.estimatedBudget?.accommodation || 0}, Food: $${trip.estimatedBudget?.food || 0}, Activities: $${trip.estimatedBudget?.activities || 0})
+- Climate: ${trip.climate?.weatherSummary || 'Not available'}
+- Hotels: ${trip.hotels?.map(h => `${h.name} (~$${h.estimatedCostNightUSD}/night)`).join(', ') || 'Not set'}
+- Itinerary:
+${trip.itinerary?.map(day =>
+  `  Day ${day.dayNumber}: ${day.activities?.map(a => `${a.timeOfDay} - ${a.title} ($${a.estimatedCostUSD})`).join(', ')}`
+).join('\n') || 'No itinerary'}
+    `.trim();
+
+    // Build conversation history for multi-turn (last 6 messages)
+    const historyText = history.slice(-6).map(h =>
+      `${h.role === 'user' ? 'Traveler' : 'Co-pilot'}: ${h.content}`
+    ).join('\n');
+
+    // Rich keyword-based smart fallback (works even without Gemini)
+    const buildSmartFallback = (msg) => {
+      const m = msg.toLowerCase();
+      const dest = trip.destination;
+      const budget = trip.budgetTier;
+      const days = trip.durationDays;
+      const total = trip.estimatedBudget?.total || 0;
+      const interests = trip.interests || [];
+
+      if (m.includes('restaurant') || m.includes('food') || m.includes('eat') || m.includes('dine') || m.includes('lunch') || m.includes('dinner') || m.includes('breakfast')) {
+        const foodTip = budget === 'Low'
+          ? `focus on street food stalls and local dhabas — you can eat well for under $5 a meal`
+          : budget === 'Medium'
+          ? `try mid-range local restaurants and popular cafes — budget around $10–20 per meal`
+          : `enjoy fine dining experiences and rooftop restaurants — expect $30–80 per meal`;
+        return `For food in **${dest}**, I'd suggest you ${foodTip}. Look for places popular with locals rather than tourist spots for the best flavours. Your food budget is **$${trip.estimatedBudget?.food || 0} USD** for the whole trip. 🍽️ Ask your hotel staff for their personal favourites — they always know the hidden gems!`;
+      }
+
+      if (m.includes('budget') || m.includes('money') || m.includes('cost') || m.includes('save') || m.includes('cheap') || m.includes('expensive') || m.includes('afford')) {
+        return `Your total budget for **${days} days in ${dest}** is **$${total} USD**. Here's the breakdown:\n\n💰 Transport: $${trip.estimatedBudget?.transport || 0}\n🏨 Accommodation: $${trip.estimatedBudget?.accommodation || 0}\n🍽️ Food: $${trip.estimatedBudget?.food || 0}\n🎯 Activities: $${trip.estimatedBudget?.activities || 0}\n\nTop tips: book accommodation early, use local transport, and eat where locals eat to stay within budget!`;
+      }
+
+      if (m.includes('transport') || m.includes('get around') || m.includes('metro') || m.includes('bus') || m.includes('taxi') || m.includes('auto') || m.includes('cab') || m.includes('uber') || m.includes('ola')) {
+        return `For getting around **${dest}**, your trip is set up for **${trip.transportMode || 'Flight'}** travel from ${trip.source || 'your origin'}. Once you're there, use local apps like **Rapido, Ola, or Uber** for ride-hailing. Metro or bus systems are cheapest if available. Always confirm fares before boarding auto-rickshaws! 🚌`;
+      }
+
+      if (m.includes('hotel') || m.includes('stay') || m.includes('accommodation') || m.includes('hostel') || m.includes('resort') || m.includes('lodge')) {
+        const hotelList = trip.hotels?.map(h => `**${h.name}** (~$${h.estimatedCostNightUSD}/night, ${h.tier})`).join('\n- ') || 'No specific hotels set yet';
+        return `For your **${budget} budget** stay in ${dest}, here are your recommended options:\n\n- ${hotelList}\n\nBook at least 1–2 weeks in advance for better rates. Check-in is typically around 2–3 PM. 🏨`;
+      }
+
+      if (m.includes('pack') || m.includes('bring') || m.includes('luggage') || m.includes('bag') || m.includes('suitcase') || m.includes('clothes')) {
+        return `For **${dest}**, the climate is: *${trip.climate?.weatherSummary || 'seasonal weather'}*. Key items to pack:\n\n📋 Essentials: Passport, travel insurance, power adapter\n👕 Clothing: Comfortable walking shoes, weather-appropriate layers\n🎒 Gear: Portable charger, water bottle, basic first-aid\n\nYour full AI packing checklist is in the Packing List section below. You can also add custom items there! ✅`;
+      }
+
+      if (m.includes('weather') || m.includes('climate') || m.includes('rain') || m.includes('hot') || m.includes('cold') || m.includes('season') || m.includes('temperature')) {
+        return `The expected weather for **${dest}** is: **${trip.climate?.temperatureRange || 'moderate temperatures'}**. Rainfall: *${trip.climate?.rainfall || 'moderate'}*.\n\n${trip.climate?.weatherSummary || 'Expect comfortable seasonal conditions.'}\n\nCheck the **Live Weather Forecast** widget in the left panel for the actual 7-day forecast! 🌤️`;
+      }
+
+      if (m.includes('itinerary') || m.includes('plan') || m.includes('day') || m.includes('schedule') || m.includes('activity') || m.includes('things to do') || m.includes('what to do')) {
+        const day1 = trip.itinerary?.[0];
+        const day1Summary = day1?.activities?.map(a => `${a.timeOfDay}: ${a.title}`).join(', ') || 'No activities planned';
+        return `Your **${days}-day ${dest}** itinerary is fully planned! Here's Day 1 to give you an idea:\n\n🗓️ **Day 1:** ${day1Summary}\n\nYou can view all ${days} days in the **Day-by-Day Timeline** above. You can also edit activities, use ✨ AI Modify to regenerate any day, or add your own custom activities!`;
+      }
+
+      if (m.includes('hello') || m.includes('hi') || m.includes('hey') || m === 'yes' || m === 'ok' || m === 'okay' || m.length < 10) {
+        return `Hey! 👋 I'm your AI Co-pilot for **${dest}**. I know your complete **${days}-day, ${budget} budget** itinerary worth **$${total} USD**.\n\nWhat would you like help with?\n\n- 🍽️ Food & restaurant recommendations\n- 🏨 Hotel & accommodation tips\n- 🚌 Getting around ${dest}\n- 💰 Budget tips & cost breakdown\n- 🌤️ Weather & what to pack\n- 🗓️ Day-by-day activity details`;
+      }
+
+      if (m.includes('local') || m.includes('tip') || m.includes('advice') || m.includes('know') || m.includes('hidden') || m.includes('gem') || m.includes('secret')) {
+        return `Great question! Here are some insider tips for **${dest}**:\n\n📍 Visit attractions early morning to avoid crowds\n💬 Learn a few local phrases — locals appreciate it!\n💵 Carry some cash — not all local vendors accept cards\n🗺️ Use Google Maps offline — download the area map before your trip\n📸 Ask for permission before photographing people\n\nYour interests (${interests.join(', ') || 'general sightseeing'}) make ${dest} a great pick! 🌟`;
+      }
+
+      // Generic helpful fallback
+      return `Great question about **${dest}**! Here's what I know about your trip:\n\n✈️ **${days} days** with a **${budget}** budget (~$${total} USD total)\n📍 Interests: ${interests.join(', ') || 'General sightseeing'}\n🏨 Hotels: ${trip.hotels?.[0]?.name || 'See recommendations in sidebar'}\n\nFeel free to ask me specifically about food, transport, hotels, budget breakdown, weather, or your daily activities! 😊`;
+    };
+
+    // If no API key, use the smart fallback directly
+    const chatApiKey = process.env.GEMINI_CHAT_API_KEY || process.env.GEMINI_API_KEY;
+    if (!chatApiKey) {
+      console.info('[Copilot] No Gemini chat API key — using smart keyword fallback.');
+      return res.status(200).json({ reply: buildSmartFallback(message) });
+    }
+
+    const prompt = `You are a friendly, expert AI travel co-pilot assistant. You have full access to this traveler's trip data and must use it to give specific, personalised answers.
+
+${tripContext}
+
+${historyText ? `Recent conversation:\n${historyText}\n\n` : ''}Traveler says: "${message}"
+
+Your response rules:
+- Be specific to THIS trip (destination, budget, activities listed above).
+- Keep responses concise: 2–5 sentences OR a short bullet list if needed.
+- Be warm, enthusiastic, and practical.
+- Use 1–3 emoji max per response for friendliness.
+- For greetings or very short messages (hi, yes, ok), ask a helpful follow-up question about their trip.
+- Format: use **bold** for key terms. No markdown headers (##). No excessive formatting.
+- Always answer in English.`;
+
+    // Retry-enabled chat call (3 retries, no JSON parsing needed)
+    const callGeminiChat = async (retries = 3, delay = 800) => {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${chatApiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 450,
+          temperature: 0.75,
+        }
+      };
+
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await httpsPost(url, payload);
+          const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!text) throw new Error('Empty Gemini response');
+          return text;
+        } catch (err) {
+          console.warn(`[Copilot] Gemini attempt ${i + 1}/${retries} failed: ${err.message}`);
+          if (err.statusCode) console.warn(`[Copilot] HTTP Status: ${err.statusCode}, Body: ${err.responseBody?.slice(0, 200)}`);
+          if (i < retries - 1) {
+            await new Promise(r => setTimeout(r, delay * (i + 1)));
+          } else {
+            throw err;
+          }
+        }
+      }
+    };
+
+    try {
+      const reply = await callGeminiChat();
+      return res.status(200).json({ reply });
+    } catch (aiError) {
+      console.error('[Copilot] All Gemini retries failed. Error:', aiError.message);
+      
+      if (aiError.statusCode === 403) {
+        return res.status(200).json({ 
+          reply: `🤖 **Google API Error: Permission Denied (HTTP 403)**\n\nThe Google Gemini API is actively blocking the API keys you provided (\`AQ.Ab...\`). \n\nTo fix this:\n1. Visit Google AI Studio to generate a new standard key (starts with \`AIzaSy...\`)\n2. Update your \`.env\` file\n3. Restart the backend.` 
+        });
+      } else if (aiError.statusCode === 400 && aiError.responseBody?.includes('API_KEY_INVALID')) {
+        return res.status(200).json({ 
+          reply: `🤖 **Google API Error: Invalid API Key (HTTP 400)**\n\nThe provided API key is invalid.` 
+        });
+      }
+
+      // Use smart keyword fallback for generic timeouts or 500s
+      return res.status(200).json({ reply: buildSmartFallback(message) });
+    }
+  } catch (error) {
+    console.error('[Copilot] Unexpected error:', error);
+    return res.status(500).json({ message: 'Error processing your message.' });
   }
 };
