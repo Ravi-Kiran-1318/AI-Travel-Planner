@@ -534,9 +534,17 @@ export default function DashboardPage() {
                 <h3 className="text-lg font-bold text-white">Hotel Recommendations</h3>
                 <div className="space-y-4">
                   {selectedTrip.hotels.map((hotel, idx) => (
-                    <div key={idx} className="bg-slate-950/40 border border-slate-850 p-4 rounded-2xl relative overflow-hidden">
+                    <a 
+                      key={idx} 
+                      href={`https://www.google.com/search?q=${encodeURIComponent(hotel.name + ' hotel ' + selectedTrip.destination)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block bg-slate-950/40 border border-slate-850 p-4 rounded-2xl relative overflow-hidden hover:border-indigo-500/50 hover:bg-slate-900/60 transition-all duration-200 group"
+                    >
                       <div className="flex justify-between items-start gap-2">
-                        <span className="font-semibold text-sm text-slate-200 leading-snug">{hotel.name}</span>
+                        <span className="font-semibold text-sm text-slate-200 leading-snug group-hover:text-indigo-300 transition-colors">
+                          {hotel.name} <span className="inline-block ml-1 opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
+                        </span>
                         {hotel.rating && (
                           <span className="text-xs bg-indigo-950/50 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-900/30 shrink-0 font-medium">
                             ★ {hotel.rating}
@@ -551,7 +559,7 @@ export default function DashboardPage() {
                           </span>
                         )}
                       </div>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </div>
